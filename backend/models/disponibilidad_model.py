@@ -18,14 +18,14 @@ class Disponibilidad(Base):
     __tablename__="disponibilidad"
 
     __table_args__ = (
-        UniqueConstraint('profesional_id', 'fecha', name='uq_turno_prof_fecha'),
+        UniqueConstraint('usuario_id', 'fecha', name='uq_turno_prof_fecha'),
     )
 
 
     id=Column(Integer, primary_key=True, index=True)
-    profesional_id=Column(Integer, ForeignKey("profesionales.id"), index=True)
+    usuario_id=Column(Integer, ForeignKey("usuarios.id"), index=True)
     dia_semana=Column(Enum(DiaEnum), index=True)
     hora_inicio=Column(Time),
     hora_fin=Column(Time)
 
-    profesional=relationship("Profesional", back_populates="disponibilidad")
+    usuario=relationship("Usuario", back_populates="disponibilidad")

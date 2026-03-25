@@ -19,7 +19,7 @@ class Comida(Base):
     tipo = Column(Enum(TipoComida), nullable=False)
     descripcion = Column(Text, nullable=True)
     imagen_url = Column(String(255), nullable=True)
-    fecha = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    fecha = Column(TIMESTAMP, server_default=func.now(),onupdate=func.now(), nullable=False)
 
 
     cliente = relationship("Cliente", back_populates="comida")
