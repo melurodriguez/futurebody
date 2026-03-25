@@ -22,3 +22,6 @@ class Usuario(Base):
 
     cliente=relationship("Cliente", back_populates="usuario")
     profesional=relationship("Profesional", back_populates="usuario")
+    turnos=relationship("Turno", back_populates="usuario")
+    disponibilidad=relationship("Disponibilidad", back_populates="usuario")
+

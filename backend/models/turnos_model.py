@@ -18,16 +18,16 @@ class Turno(Base):
     __tablename__="turnos"
 
     __table_args__ = (
-        UniqueConstraint('profesional_id', 'fecha', name='uq_turno_prof_fecha'),
+        UniqueConstraint('usuario_id', 'fecha', name='uq_turno_usuario_fecha'),
     )
 
 
     id=Column(Integer, primary_key=True, index=True)
     cliente_id= Column(Integer, ForeignKey("clientes.id"), index=True)
-    profesional_id=Column(Integer, ForeignKey("profesionales.id"), index=True)
+    usuario_id=Column(Integer, ForeignKey("usuarios.id"), index=True)
     tipo=Column(Enum(TipoEnum), default=TipoEnum.entrenamiento)
     fecha=Column(DateTime, nullable=False, index=True)
     estado=Column(Enum(EstadoEnum), default=EstadoEnum.pendiente)
 
     cliente=relationship("Cliente", back_populates="turnos")
-    profesional=relationship("Profesional", back_populates="turnos")
+    usuario=relationship("Usuario", back_populates="turnos")
