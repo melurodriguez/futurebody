@@ -9,6 +9,10 @@ class CicloMenstrualBase(BaseModel):
 class CicloMenstrualCreate(CicloMenstrualBase):
     cliente_id: int = Field(..., description="ID del cliente asociado")
 
+class CicloMenstrualUpdate(BaseModel):
+    fecha_inicio: Optional[date]=None
+    fehca_fin: Optional[date]=None
+
 class CicloMenstrualResponse(CicloMenstrualBase):
     id: int
     cliente_id: int

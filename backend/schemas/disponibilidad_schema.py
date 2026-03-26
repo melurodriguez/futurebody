@@ -20,6 +20,11 @@ class DisponibilidadBase(BaseModel):
 class DisponibilidadCreate(DisponibilidadBase):
     usuario_id: int = Field(..., description="ID del usuario (profesional)")
 
+class DisponibilidadUpdate(BaseModel):
+    dia_semana: Optional[DiaEnum]
+    hora_inicio: Optional[time] = Field(example="09:00:00")
+    hora_fin: Optional[time] = Field(example="18:00:00")
+
 class DisponibilidadResponse(DisponibilidadBase):
     id: int
     usuario_id: int

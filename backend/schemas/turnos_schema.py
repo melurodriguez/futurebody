@@ -23,6 +23,11 @@ class TurnoCreate(TurnoBase):
     cliente_id: int = Field(..., description="ID del cliente que reserva")
     usuario_id: int = Field(..., description="ID del profesional asignado")
 
+class TurnoUpdate(BaseModel):
+    tipo: Optional[TipoEnum] = None
+    fecha: Optional[datetime] = None
+    estado: Optional[EstadoEnum] = None
+
 class TurnoResponse(TurnoBase):
     id: int
     cliente_id: int

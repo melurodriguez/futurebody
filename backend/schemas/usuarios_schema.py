@@ -10,6 +10,8 @@ class RolEnum(str, Enum):
 class UsuarioBase(BaseModel):
     email: EmailStr = Field(..., description="Email del usuario")
     alias: Optional[str] = Field(None, max_length=20)
+    is_active: bool=Field( default=True)
+    is_profile_complete: bool = Field(default=False)
 
 class UsuarioCreate(UsuarioBase):
     password: str = Field(
@@ -23,10 +25,17 @@ class UsuarioCreate(UsuarioBase):
         description="El rol determina los permisos"
     )
 
+class UsuarioUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    alias: Optional[str] = None
+    is_active: Optional[bool] = None
+    is_profile_complete: Optional[bool] = None
+    password: Optional[str] = Field(None, min_length=8)
+
 class UsuarioResponse(UsuarioBase):
     id: int = Field(..., gt=0)
     rol: RolEnum
-    creado_en: datetime = Field(..., alias="registered_at")
+    creado_en: datetime = Field(..., serialization_alias="registered_at")
 
     # Pydantic V2 usa model_config en lugar de class Config
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
