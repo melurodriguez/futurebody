@@ -16,6 +16,12 @@ class ClienteBase(BaseModel):
 class ClienteCreate(ClienteBase):
     id:  int = Field(..., gt=0)
 
+class ClienteUpdate(BaseModel):
+    nombre: Optional[str] = None
+    telefono: Optional[str]= None
+    sexo: Optional[SexoEnum] = None
+    fecha_nacimiento: Optional[date] = None
+
 class ClienteResponse(ClienteBase):
     id:  int = Field(..., gt=0)
 

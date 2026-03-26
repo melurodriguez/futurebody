@@ -14,6 +14,12 @@ class ObjetivoBase(BaseModel):
 
 class ObjetivoCreate(ObjetivoBase):
     cliente_id: int = Field(..., description="ID del cliente asociado")
+
+
+class ObjetivoUpdate(BaseModel):
+    tipo: Optional[ObjetivoEnum] = Field(None, description="El tipo de objetivo físico") 
+    valor_inicial: Optional[float] = Field(None, gt=0)
+    valor_objetivo: Optional[float] = Field(None, gt=0)
     
 class ObjetivoResponse(ObjetivoBase):
     id: int

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, DateTime
+from sqlalchemy import Column, Integer, String, Enum, DateTime, Boolean
 from backend.database import Base
 import enum
 from sqlalchemy.sql import func
@@ -18,6 +18,8 @@ class Usuario(Base):
     alias = Column(String(50), nullable=True)
     rol = Column(Enum(RolEnum), nullable=False, index=True)
     creado_en = Column(DateTime, server_default=func.now())
+    is_active=Column(Boolean, default=True)
+    is_profile_complete=Column(Boolean, default=False)
     #actualizado_en = Column(DateTime, onupdate=func.now())
 
     cliente=relationship("Cliente", back_populates="usuario")

@@ -17,6 +17,11 @@ class ComidaBase(BaseModel):
 class ComidaCreate(ComidaBase):
     cliente_id: int = Field(..., description="ID del cliente asociado")
 
+class ComidaUpdate(BaseModel):
+    tipo: Optional[TipoEnum] = None
+    descripcion: Optional[str] =Field(None)
+    imagen_url: Optional[str]=Field(None, max_length=255)
+    
 class ComidaResponse(ComidaBase):
     id: int = Field(..., gt=0)
     cliente_id: int
