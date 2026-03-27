@@ -15,6 +15,11 @@ class UsuarioDAO:
     async def get_by_id(db: AsyncSession, usuario_id: int) -> Optional[Usuario]:
         """Busca un usuario por su ID primario utilizando el método optimizado .get()"""
         return await db.get(Usuario, usuario_id)
+    
+    @staticmethod
+    async def get_by_email(db:AsyncSession, email:str):
+        """Busca un usuario por su email"""
+        return await db.get(Usuario, email)
 
     @staticmethod
     async def create(db: AsyncSession, usuario: Usuario) -> Usuario:

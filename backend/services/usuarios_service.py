@@ -2,22 +2,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from futurebody.backend.dao.usuarios_dao import UsuarioDAO
 from futurebody.backend.models.usuarios_model import Usuario
 from futurebody.backend.schemas.usuarios_schema import UsuarioCreate, UsuarioUpdate
+from futurebody.backend.exceptions.usuarios_exceptions import (
+    UserNotFoundError, 
+    EmailAlreadyRegisteredError
+)
 
-async def get_usuarios_service(db:AsyncSession):
-    try:
-        return await UsuarioDAO.get_all(db=db)
-    except Exception as e:
-        raise e
-    
-async def get_usuario_by_id_service(db:AsyncSession, usuario_id:int):
-    try:
-        return await UsuarioDAO.get_by_id(db=db, usuario_id=usuario_id)
-    except Exception as e:
-        raise e
-    
+async def get_usuarios_service(db: AsyncSession):
+    return await UsuarioDAO.get_all(db=db)
+
+async def get_usuario_by_id_service(db: AsyncSession, usuario_id: int):
+    usuario = await UsuarioDAO.get_by_id(db=db, usuario_id=usuario_id)
+    if not usuario:
+        raise UserNotFoundError(user_id=usuario_id)
+    return usuario
+
 async def create_usuario_service(db: AsyncSession, usuario_data: UsuarioCreate):
+    existe = await UsuarioDAO.get_by_email(db=db, email=usuario_data.email)
+    if existe:
+        raise EmailAlreadyRegisteredError(usuario_data.email)
+    
     try:
-        user_created= await UsuarioDAO.create(db=db, data=usuario_data.model_dump())
+        user_created = await UsuarioDAO.create(db=db, usuario_data=usuario_data.model_dump())
         await db.commit()
         await db.refresh(user_created)
         return user_created
@@ -26,13 +31,16 @@ async def create_usuario_service(db: AsyncSession, usuario_data: UsuarioCreate):
         raise e
 
 async def patch_usuario_service(db: AsyncSession, usuario_id: int, datos_nuevos: UsuarioUpdate):
-
     usuario_db = await UsuarioDAO.get_by_id(db, usuario_id)
     if not usuario_db:
-        raise Exception("Usuario no encontrado")
-
+        raise UserNotFoundError(user_id=usuario_id)
 
     update_data = datos_nuevos.model_dump(exclude_unset=True)
+
+    if "email" in update_data and update_data["email"] != usuario_db.email:
+        email_ocupado = await UsuarioDAO.get_by_email(db, update_data["email"])
+        if email_ocupado:
+            raise EmailAlreadyRegisteredError(update_data["email"])
 
     try:
         await UsuarioDAO.update(db, usuario_db, update_data)
@@ -42,14 +50,11 @@ async def patch_usuario_service(db: AsyncSession, usuario_id: int, datos_nuevos:
     except Exception as e:
         await db.rollback()
         raise e
-    
 
-async def delete_usuario_service(db:AsyncSession, usuario_id:int):
-   
-    usuario_db=await UsuarioDAO.get_by_id(db=db, usuario_id=usuario_id)
-
+async def delete_usuario_service(db: AsyncSession, usuario_id: int):
+    usuario_db = await UsuarioDAO.get_by_id(db=db, usuario_id=usuario_id)
     if not usuario_db:
-        raise Exception("Usuario no encontrado")
+        raise UserNotFoundError(user_id=usuario_id)
     
     try:
         await UsuarioDAO.delete(db=db, usuario_db=usuario_db)

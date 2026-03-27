@@ -20,6 +20,9 @@ async def get_all_ciclos_service(db: AsyncSession, cliente_id: int):
     await _validar_perfil_femenino(db, cliente_id)
     return await CicloDAO.get_all_by_cliente(db=db, cliente_id=cliente_id)
 
+async def get_ciclo_by_id_Service(db:AsyncSession, cliente_id:int, ciclo_id:int):
+    return await CicloDAO.get_by_id(db=db, ciclo_id=ciclo_id)
+
 async def create_ciclo_service(db: AsyncSession, ciclo: CicloMenstrualCreate):
     # 1. Validar sexo
     await _validar_perfil_femenino(db, ciclo.cliente_id)

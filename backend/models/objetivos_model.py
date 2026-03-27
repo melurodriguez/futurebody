@@ -9,6 +9,10 @@ class ObjetivoEnum(str, enum.Enum):
     ganar_musculo="ganar_musculo"
     perder_peso="perder_peso"
 
+class EstadoEnum(str, enum.Enum):
+    incompleto="incompleto"
+    completado="completado"
+
 class Objetivo(Base):
 
     __tablename__="objetivos"
@@ -18,6 +22,7 @@ class Objetivo(Base):
     tipo=Column(Enum(ObjetivoEnum), nullable=False,index=True )
     valor_inicial=Column(Double, nullable=False)
     valor_objetivo=Column(Double, nullable=False)
+    #estado=Column(Enum(EstadoEnum), default=EstadoEnum.incompleto)
 
 
     cliente=relationship("Cliente", back_populates="objetivos")
