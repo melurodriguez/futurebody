@@ -2,7 +2,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from futurebody.backend.dao.clientes_dao import ClienteDAO
 from futurebody.backend.schemas.clientes_schema import ClienteCreate, ClienteUpdate
 from futurebody.backend.models.clientes_model import Cliente
-
+from futurebody.backend.exceptions.clientes_exceptions import ClienteAlreadyExistsError,ClienteError,ClienteNotFoundError,IncompatibleGenderDataError,InvalidBirthDateError
+from datetime import datetime
+from futurebody.backend.dao.usuarios_dao import UsuarioDAO
 async def get_clientes_service(db:AsyncSession):
     try:
         return await ClienteDAO.get_all(db=db)
@@ -10,14 +12,24 @@ async def get_clientes_service(db:AsyncSession):
         raise e
     
 async def get_cliente_by_id(db:AsyncSession, cliente_id:int):
-    try:
-        return await ClienteDAO.get_by_id(db=db, cliente_id=cliente_id)
-    except Exception as e:
-        raise e
+    cliente= await ClienteDAO.get_by_id(db=db, cliente_id=cliente_id)
+    if not cliente:
+        raise ClienteNotFoundError(cliente_id=cliente_id)
+    return cliente
 
 async def create_cliente_service(db:AsyncSession, cliente_data:ClienteCreate):
+    existe=await ClienteDAO.get_by_id(db=db, cliente_id=cliente_data.id)
+    if existe:
+        raise ClienteAlreadyExistsError(cliente_id=cliente_data.id)
+    
+    if cliente_data.fecha_nacimiento > datetime.now():
+        raise InvalidBirthDateError()
+    
     try:
         cliente_created=await ClienteDAO.create(db=db, cliente=cliente_data.model_dump())
+        usuario_db = await UsuarioDAO.get_by_id(db, usuario_id=cliente_data.id)
+        if usuario_db:
+            usuario_db.is_profile_complete = True
         await db.commit()
         await db.refresh(cliente_created)
         return cliente_created
@@ -29,9 +41,13 @@ async def patch_cliente_service(db:AsyncSession, cliente_id:int ,cliente_data:Cl
     cliente_db=await ClienteDAO.get_by_id(db=db, cliente_id=cliente_id)
 
     if not cliente_db:
-        raise Exception("Cliente no encontrado")
+        raise ClienteNotFoundError(cliente_id=cliente_id)
     
     update_data=cliente_data.model_dump(exclude_unset=True)
+
+    if "fecha_nacimiento" in update_data:
+        if update_data["fecha_nacimiento"] > datetime.now():
+            raise InvalidBirthDateError()
     
     try:
         await ClienteDAO.update(db=db, cliente_db=cliente_db, update_data=update_data)
@@ -47,10 +63,15 @@ async def delete_cliente_service(db:AsyncSession, cliente_id:int):
     cliente_db=await ClienteDAO.get_by_id(db=db, cliente_id=cliente_id)
 
     if not cliente_db:
-        raise Exception("Cliente no encontrado")
+        raise ClienteNotFoundError(cliente_id=cliente_id)
     
     try:
         await ClienteDAO.delete(db=db,cliente_db=cliente_db)
+        usuario_db = await UsuarioDAO.get_by_id(db, usuario_id=cliente_id)
+        if usuario_db:
+            usuario_db.is_profile_complete = False
+            usuario_db.is_active=False
+            
         await db.commit()
         return True
     except Exception as e:

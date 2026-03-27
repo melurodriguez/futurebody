@@ -6,15 +6,16 @@ from futurebody.backend.models.mediciones_model import Medicion
 class MedicionDAO:
 
     @staticmethod
-    async def get_all(db: AsyncSession) -> List[Medicion]:
+    async def get_all(db: AsyncSession,  cliente_id: int) -> List[Medicion]:
         """Obtiene todos las mediciones."""
-        result = await db.execute(select(Medicion))
+        result = await db.execute(select(Medicion).filter_by(cliente_id=cliente_id))
         return list(result.scalars().all())
 
     @staticmethod
-    async def get_by_id(db: AsyncSession, medicion_id: int) -> Optional[Medicion]:
+    async def get_by_id(db: AsyncSession, medicion_id: int,  cliente_id: int) -> Optional[Medicion]:
         """Busca una medicion por su ID primario utilizando el método optimizado .get()"""
-        return await db.get(Medicion, medicion_id)
+        result= await db.execute(select(Medicion).filter_by(id=medicion_id, cliente_id=cliente_id))
+        return result.scalar_one_or_none()
 
     @staticmethod
     async def create(db: AsyncSession, medicion: Medicion) -> Medicion:

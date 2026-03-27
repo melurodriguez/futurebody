@@ -6,15 +6,20 @@ from futurebody.backend.models.medidas_corporales_model import MedidaCorporal
 class MedidaCorporalDAO:
 
     @staticmethod
-    async def get_all(db: AsyncSession) -> List[MedidaCorporal]:
-        """Obtiene todos las medidas."""
-        result = await db.execute(select(MedidaCorporal))
+    async def get_all_by_cliente(db: AsyncSession, cliente_id: int) -> List[MedidaCorporal]:
+        """Solo obtiene las medidas de este cliente."""
+        result = await db.execute(
+            select(MedidaCorporal).filter_by(cliente_id=cliente_id)
+        )
         return list(result.scalars().all())
 
     @staticmethod
-    async def get_by_id(db: AsyncSession, medida_id: int) -> Optional[MedidaCorporal]:
-        """Busca una medida por su ID primario utilizando el método optimizado .get()"""
-        return await db.get(MedidaCorporal, medida_id)
+    async def get_by_id(db: AsyncSession, medida_id: int, cliente_id: int) -> Optional[MedidaCorporal]:
+        """Busca la medida pero VALIDA que pertenezca al cliente."""
+        result = await db.execute(
+            select(MedidaCorporal).filter_by(id=medida_id, cliente_id=cliente_id)
+        )
+        return result.scalar_one_or_none()
 
     @staticmethod
     async def create(db: AsyncSession, medida: MedidaCorporal) -> MedidaCorporal:

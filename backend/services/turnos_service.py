@@ -1,9 +1,27 @@
 from datetime import timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from futurebody.backend.dao.turnos_dao import TurnoDAO
-from fastapi import HTTPException
+from futurebody.backend.exceptions.turnos_exceptions import (
+    TurnoNotFoundError,
+    TurnoConflictError,
+    TurnoError,
+    InvalidAmountPerWeekError,
+    InvalidDateError,
+    PastDateError,
+    LateCancellationError,
+    UnauthorizedTurnoAccessError,
+    TurnoUpdateNotAllowedError
+)
 from futurebody.backend.schemas.turnos_schema import TurnoCreate, TurnoUpdate
 from futurebody.backend.services.usuarios_service import get_usuario_by_id_service
+from datetime import datetime
+
+async def validar_cancelacion_antelacion(fecha_turno: datetime, horas_minimas: int = 2):
+    ahora = datetime.now()
+    limite = ahora + timedelta(hours=horas_minimas)
+    
+    if fecha_turno < limite:
+        raise LateCancellationError(horas=horas_minimas)
 
 async def verificar_limite_semanal(db, cliente_id, fecha_turno):
     inicio_semana = fecha_turno - timedelta(days=fecha_turno.weekday())
@@ -12,7 +30,7 @@ async def verificar_limite_semanal(db, cliente_id, fecha_turno):
     conteo= await TurnoDAO.turnos_por_semana(db=db, cliente_id=cliente_id, inicio_semana=inicio_semana, fin_semana=fin_semana)
     
     if conteo >= 2:
-        raise HTTPException(status_code=400, detail="Límite de 2 entrenamientos por semana alcanzado.")
+        raise InvalidAmountPerWeekError(status_code=400, detail="Límite de 2 entrenamientos por semana alcanzado.")
     
 async def get_all_turnos_service(db:AsyncSession, cliente_id:int | None, usuario_id:int|None):
     try:
@@ -24,10 +42,10 @@ async def get_turno_by_id_service(db:AsyncSession, turno_id:int, cliente_id:int)
     turno = await TurnoDAO.get_by_id(db, turno_id)
 
     if not turno:
-        raise HTTPException(status_code=404, detail="El turno no existe")
+        raise TurnoNotFoundError(status_code=404, detail="El turno no existe")
 
     if turno.cliente_id != cliente_id:
-        raise HTTPException(status_code=403, detail="No tienes permiso para ver este turno")
+        raise UnauthorizedTurnoAccessError(status_code=403, detail="No tienes permiso para ver este turno")
 
     return turno
 
@@ -53,59 +71,53 @@ async def create_turno_service(db: AsyncSession, cliente_id: int, turno_data: Tu
     except Exception as e:
         await db.rollback()
         if "Duplicate entry" in str(e):
-            raise HTTPException(
+            raise TurnoConflictError(
                 status_code=400, 
                 detail="El profesional ya tiene un turno asignado en esa fecha y hora."
             )
         raise e
 
 
-async def patch_turno_service(db:AsyncSession, cliente_id:int, turno_id:int,update_dict:TurnoUpdate):
-
-    turno_db=await TurnoDAO.get_by_id(db=db, turno_id=turno_id)
-
+async def patch_turno_service(db: AsyncSession, cliente_id: int, turno_id: int, update_dict: TurnoUpdate):
+    turno_db = await TurnoDAO.get_by_id(db=db, turno_id=turno_id)
     if not turno_db:
-        raise HTTPException(status_code=404, detail="Turno no encontrado")
+        raise TurnoNotFoundError(turno_id=turno_id)
     
     if turno_db.cliente_id != cliente_id:
-        raise HTTPException(status_code=403, detail="No tienes permiso para modificar este turno")
+        raise UnauthorizedTurnoAccessError()
     
-    update_dict= update_dict.model_dump()
+    update_data = update_dict.model_dump(exclude_unset=True)
 
-    if "fecha" in update_dict:
-        raise HTTPException(
-            status_code=400, 
-            detail="La fecha no se puede modificar. Por favor, cancela el turno y solicita uno nuevo."
-        )
-    
-    # 4. Lógica de liberación de cupo
-    # Si el cliente cambia el estado a 'cancelado', el método 'verificar_limite_semanal'
-    # que hicimos antes automáticamente dejará de contarlo (porque filtramos por estado != cancelado).
+    if "fecha" in update_data:
+        raise TurnoUpdateNotAllowedError()
+
+    if update_data.get("estado") == "cancelado":
+        ahora = datetime.now()
+        if turno_db.fecha < ahora + timedelta(hours=2):
+            raise LateCancellationError(horas=2)
 
     try:
-        await TurnoDAO.patch(db=db, turno_db=turno_db, turno_data= update_dict)
+        await TurnoDAO.patch(db=db, turno_db=turno_db, turno_data=update_data)
         await db.commit()
         await db.refresh(turno_db)
         return turno_db
+        
     except Exception as e:
         await db.rollback()
         raise e
 
-
 async def delete_turno_service(db:AsyncSession, turno_id:int, usuario_id:int):
-
-    # Si tu sistema de autenticación (JWT) ya incluye el rol dentro del token, no necesitarías llamar a la base de datos para buscar al usuario (get_usuario_by_id_service). Podrías pasar el rol directamente desde el Controller al Service y ahorrar una consulta SQL.
 
     usuario_db=await get_usuario_by_id_service(db=db, usuario_id=usuario_id)
 
     if not usuario_db:
-        raise HTTPException(
+        raise TurnoNotFoundError(
             status_code=404,
             detail="Usuario no encontrado"
         )
     
     if (usuario_db.rol != "profesional"):
-        raise HTTPException(
+        raise UnauthorizedTurnoAccessError(
             status_code=403,
             detail="Accion no autorizada. Debe ser un prodfesional."
         )
@@ -113,7 +125,7 @@ async def delete_turno_service(db:AsyncSession, turno_id:int, usuario_id:int):
     turno_db=await TurnoDAO.get_by_id(db=db, turno_id=turno_id)
 
     if not turno_db:
-        raise HTTPException(
+        raise TurnoNotFoundError(
             status_code=404,
             detail="Turno no encontrado"
         )
