@@ -1,7 +1,16 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy.future import select, and_
 from typing import List, Optional
 from futurebody.backend.models.comidas_model import Comida
+from datetime import date
+import enum
+
+class TipoComida(enum.Enum):
+    desayuno = "desayuno"
+    almuerzo = "almuerzo"
+    merienda = "merienda"
+    cena = "cena"
+
 
 class ComidaDao:
 
@@ -25,10 +34,11 @@ class ComidaDao:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def create(db: AsyncSession, comida: Comida) -> Comida:
-        """Añade la instancia al contexto (el cliente_id ya viene dentro del objeto comida)."""
-        db.add(comida)
-        return comida
+    async def create(db: AsyncSession, cliente_id: int, comida_data: dict) -> Comida:
+        """Crea la instancia asegurando el cliente_id."""
+        nueva_comida = Comida(**comida_data, cliente_id=cliente_id)
+        db.add(nueva_comida)
+        return nueva_comida
 
     @staticmethod
     async def update(db: AsyncSession, comida_db: Comida, update_data: dict) -> Comida:
@@ -42,3 +52,20 @@ class ComidaDao:
     async def delete(db: AsyncSession, comida_db: Comida) -> None:
         """Marca la instancia para eliminación."""
         await db.delete(comida_db)
+
+    @staticmethod
+    async def get_by_date_and_type(db: AsyncSession, cliente_id: int, fecha: date, tipo: str):
+        """
+        Busca si ya existe una comida de ese tipo para ese cliente en esa fecha.
+        """
+        query = select(Comida).where(
+            and_(
+                Comida.cliente_id == cliente_id,
+                Comida.fecha == fecha,
+                Comida.tipo == tipo
+            )
+        )
+        result = await db.execute(query)
+        # Devolvemos el objeto encontrado (o None)
+        return result.scalars().first()
+        

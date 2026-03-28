@@ -18,10 +18,11 @@ class MedicionDAO:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def create(db: AsyncSession, medicion: Medicion) -> Medicion:
+    async def create(db: AsyncSession, cliente_id:int ,medicion: dict) -> Medicion:
         """Añade la instancia al contexto de la sesión (sin commit)."""
-        db.add(medicion)
-        return medicion
+        nueva_medicion=Medicion(**medicion, cliente_id=cliente_id)
+        db.add(nueva_medicion)
+        return nueva_medicion
 
     @staticmethod
     async def update(db: AsyncSession, medicion_db: Medicion, update_data: dict) -> Medicion:

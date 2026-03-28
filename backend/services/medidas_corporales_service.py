@@ -2,7 +2,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from futurebody.backend.dao.medidas_corporales_dao import MedidaCorporalDAO
 from futurebody.backend.models.medidas_corporales_model import MedidaCorporal
 from futurebody.backend.schemas.medidas_corporales_schema import MedidaCorporalCreate, MedidaCorporalUpdate
-from fastapi import HTTPException
+from futurebody.backend.exceptions.medidas_corporales_exceptions import MedidaCorporalNotFoundError
+from futurebody.backend.exceptions.clientes_exceptions import ClienteNotFoundError
+from futurebody.backend.dao.clientes_dao import ClienteDAO
+from futurebody.backend.exceptions.auth_exceptions import UnauthorizedError
+
 
 async def get_medidas_service(db:AsyncSession, cliente_id:int):
     try:
@@ -11,14 +15,22 @@ async def get_medidas_service(db:AsyncSession, cliente_id:int):
         raise e
     
 async def get_medida_by_id_service(db:AsyncSession, medida_id:int, cliente_id:int):
-    try:
-        return await MedidaCorporalDAO.get_by_id(db=db, medida_id=medida_id, cliente_id=cliente_id)
-    except Exception as e:
-        raise e
+    medida= await MedidaCorporalDAO.get_by_id(db=db, medida_id=medida_id, cliente_id=cliente_id)
+    if not medida:
+        raise MedidaCorporalNotFoundError(medida_id=medida_id)
+    return medida
     
-async def create_medida_service(db: AsyncSession, medida_data: MedidaCorporalCreate):
+async def create_medida_service(db: AsyncSession, cliente_id:int, es_profesional:bool,medida_data: MedidaCorporalCreate):
+
+    if not es_profesional:
+        raise UnauthorizedError("Solo un profesional puede registrar nuevas mediciones.")
+    
+    cliente= await ClienteDAO.get_by_id(db=db, cliente_id=cliente_id)
+    if not cliente:
+        raise ClienteNotFoundError(cliente_id=cliente_id)
+    
     try:
-        medida_created= await MedidaCorporalDAO.create(db=db, data=medida_data.model_dump())
+        medida_created= await MedidaCorporalDAO.create(db=db, cliente_id=cliente_id, data=medida_data.model_dump())
         await db.commit()
         await db.refresh(medida_created)
         return medida_created
@@ -30,13 +42,17 @@ async def create_medida_service(db: AsyncSession, medida_data: MedidaCorporalCre
 async def patch_medida_service(
     db: AsyncSession, 
     medida_id: int, 
-    cliente_id: int,  
+    cliente_id: int,
+    es_profesional:bool,  
     datos_nuevos: MedidaCorporalUpdate
 ):
+    if not es_profesional:
+        raise UnauthorizedError("Solo un profesional puede registrar nuevas mediciones.")
+    
     medida_db = await MedidaCorporalDAO.get_by_id(db, medida_id, cliente_id)
     
     if not medida_db:
-        raise HTTPException(status_code=404, detail="Medida no encontrada o no pertenece al cliente")
+        raise MedidaCorporalNotFoundError(medida_id=medida_id)
 
     update_data = datos_nuevos.model_dump(exclude_unset=True)
 
@@ -49,11 +65,15 @@ async def patch_medida_service(
         await db.rollback()
         raise e
 
-async def delete_medida_service(db: AsyncSession, medida_id: int, cliente_id: int):
+async def delete_medida_service(db: AsyncSession, medida_id: int, cliente_id: int, es_profesional:bool):
+
+    if not es_profesional:
+        raise UnauthorizedError("Solo un profesional puede registrar nuevas mediciones.")
+    
     medida_db = await MedidaCorporalDAO.get_by_id(db, medida_id, cliente_id)
 
     if not medida_db:
-        raise HTTPException(status_code=404, detail="Medida no encontrada")
+        raise MedidaCorporalNotFoundError(medida_id=medida_id)
     
     try:
         await MedidaCorporalDAO.delete(db=db, medida_db=medida_db)
