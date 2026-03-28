@@ -4,6 +4,8 @@ from futurebody.backend.dao.objetivos_dao import ObjetivoDAO
 from futurebody.backend.dao.clientes_dao import ClienteDAO
 from fastapi import HTTPException, status
 from datetime import datetime
+from futurebody.backend.exceptions.auth_exceptions import UnauthorizedError
+
 
 
 async def get_all_by_cliente_service(db: AsyncSession, cliente_id: int):
@@ -15,10 +17,12 @@ async def get_objetivo_by_id_service(db:AsyncSession, objetivo_id:int, cliente_i
 async def create_objetivo_service(
     db: AsyncSession, 
     objetivo_in: ObjetivoCreate, 
-    cliente_id: int
+    cliente_id: int,
+    es_profesional:bool
 ):
-    
-    ##solo profesional puede crear, modificar, eliminar objetivos EN EL CONTROLLER
+    if not es_profesional:
+        raise UnauthorizedError("Solo un profesional puede registrar nuevas mediciones.")
+
     conteo_incompletos = await ObjetivoDAO.count_incompletos(db, cliente_id)
     
     if conteo_incompletos >= 2:
@@ -39,7 +43,11 @@ async def create_objetivo_service(
         await db.rollback()
         raise e
 
-async def patch_objetivo_service(db: AsyncSession, objetivo_id: int, cliente_id:int, objetivo_data: ObjetivoUpdate):
+async def patch_objetivo_service(db: AsyncSession, objetivo_id: int, cliente_id:int, es_profesional:bool,objetivo_data: ObjetivoUpdate):
+    
+    if not es_profesional:
+        raise UnauthorizedError("Solo un profesional puede registrar nuevas mediciones.")
+    
     objetivo_db = await ObjetivoDAO.get_by_id(db=db, objetivo_id=objetivo_id, cliente_id=cliente_id)
     if not objetivo_db:
         raise HTTPException(status_code=404, detail="objetivo no encontrado")
@@ -55,7 +63,11 @@ async def patch_objetivo_service(db: AsyncSession, objetivo_id: int, cliente_id:
         await db.rollback()
         raise e
 
-async def delete_objetivo_service(db: AsyncSession, objetivo_id: int, cliente_id: int):
+async def delete_objetivo_service(db: AsyncSession, objetivo_id: int, cliente_id: int, es_profesional:bool):
+
+    if not es_profesional:
+        raise UnauthorizedError("Solo un profesional puede registrar nuevas mediciones.")
+
     objetivo_db = await ObjetivoDAO.get_by_id(db=db, objetivo_id=objetivo_id, cliente_id=cliente_id) 
     
     if not objetivo_db:

@@ -11,11 +11,16 @@ from futurebody.backend.services.turnos_service import (
     patch_turno_service,
     delete_turno_service
 )
+from futurebody.backend.exceptions.usuarios_exceptions import UserNotFoundError
+
 from futurebody.backend.exceptions.turnos_exceptions import (
    TurnoError,
-   TurnoAlreadyExistsError,
    TurnoNotFoundError,
-   InvalidDateError
+   LateCancellationError,
+   TurnoConflictError,
+   InvalidAmountPerWeekError,
+   TurnoUpdateNotAllowedError,
+   UnauthorizedTurnoAccessError
 )
 
 router = APIRouter(prefix='/turnos', tags=['Turnos'])
@@ -32,25 +37,37 @@ async def get_turno_by_id_router(turno_id: int, db: AsyncSession = Depends(get_d
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 @router.post("/", response_model=TurnoResponse, status_code=status.HTTP_201_CREATED)
-async def create_user_router(turno_data: TurnoCreate, db: AsyncSession = Depends(get_db)):
+async def create_turno_router(turno_data: TurnoCreate, db: AsyncSession = Depends(get_db)):
     try:
         return await create_turno_service(db=db, turno_data=turno_data)
-    except TurnoAlreadyExistsError as e:
+    except TurnoConflictError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except InvalidAmountPerWeekError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.patch("/{turno_id}", response_model=TurnoResponse)
-async def update_user_router(turno_id: int, turno_data: TurnoUpdate, db: AsyncSession = Depends(get_db)):
+async def update_turno_router(turno_id: int, turno_data: TurnoUpdate, db: AsyncSession = Depends(get_db)):
     try:
         return await patch_turno_service(db=db, turno_id=turno_id, datos_nuevos=turno_data)
     except TurnoNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except TurnoAlreadyExistsError as e:
+    except TurnoConflictError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except UnauthorizedTurnoAccessError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+    except TurnoUpdateNotAllowedError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except LateCancellationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.delete("/{turno_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user_router(turno_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_turno_router(turno_id: int, db: AsyncSession = Depends(get_db)):
     try:
         await delete_turno_service(db=db, turno_id=turno_id)
         return None
     except TurnoNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except UnauthorizedTurnoAccessError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+    except UserNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

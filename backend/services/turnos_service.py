@@ -12,6 +12,7 @@ from futurebody.backend.exceptions.turnos_exceptions import (
     UnauthorizedTurnoAccessError,
     TurnoUpdateNotAllowedError
 )
+from futurebody.backend.exceptions.usuarios_exceptions import UserNotFoundError
 from futurebody.backend.schemas.turnos_schema import TurnoCreate, TurnoUpdate
 from futurebody.backend.services.usuarios_service import get_usuario_by_id_service
 from datetime import datetime
@@ -111,7 +112,7 @@ async def delete_turno_service(db:AsyncSession, turno_id:int, usuario_id:int):
     usuario_db=await get_usuario_by_id_service(db=db, usuario_id=usuario_id)
 
     if not usuario_db:
-        raise TurnoNotFoundError(
+        raise UserNotFoundError(
             status_code=404,
             detail="Usuario no encontrado"
         )
