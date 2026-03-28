@@ -3,7 +3,7 @@ from datetime import date, datetime
 from typing import Optional
 import enum
 
-class TipoEnum(str, enum):
+class TipoEnum(str, enum.Enum):
     desayuno="desayuno"
     almuerzo="almuerzo"
     merienda="merienda"

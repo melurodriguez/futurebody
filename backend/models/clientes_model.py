@@ -18,7 +18,7 @@ class Cliente(Base):
 
     usuario = relationship("Usuario", back_populates="cliente")
     comida=relationship("Comida", back_populates="cliente")
-    medidas_corporales=relationship("MedidCorporal", back_populates="cliente")
+    medidas_corporales=relationship("MedidaCorporal", back_populates="cliente")
     mediciones=relationship("Medicion", back_populates="cliente")
     ciclo_menstrual=relationship("CicloMenstrual", back_populates="cliente")
     objetivos=relationship("Objetivo", back_populates="cliente")

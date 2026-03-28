@@ -1,16 +1,16 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from futurebody.backend.schemas.ciclo_menstrual_schema import CicloMenstrualCreate, CicloMenstrualUpdate
-from futurebody.backend.dao.ciclo_menstrual_dao import CicloDAO
-from futurebody.backend.dao.clientes_dao import ClienteDAO
+from backend.schemas.ciclo_menstrual_schema import CicloMenstrualCreate, CicloMenstrualUpdate
+from backend.dao.ciclo_menstrual_dao import CicloDAO
+from backend.dao.clientes_dao import ClienteDAO
 from datetime import datetime
 
-from futurebody.backend.exceptions.ciclo_exceptions import (
+from backend.exceptions.ciclo_exceptions import (
     CicloNotFoundError, 
     CicloInvalidGenderError, 
     CicloFutureDateError
 )
 
-from futurebody.backend.exceptions.clientes_exceptions import ClienteNotFoundError
+from backend.exceptions.clientes_exceptions import ClienteNotFoundError
 
 async def _validar_perfil_femenino(db: AsyncSession, cliente_id: int):
     cliente = await ClienteDAO.get_by_id(db, cliente_id)

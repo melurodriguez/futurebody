@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List, Optional
-from futurebody.backend.models.usuarios_model import Usuario
+from backend.models.usuarios_model import Usuario
 
 class UsuarioDAO:
 
@@ -22,10 +22,11 @@ class UsuarioDAO:
         return await db.get(Usuario, email)
 
     @staticmethod
-    async def create(db: AsyncSession, usuario: Usuario) -> Usuario:
+    async def create(db: AsyncSession, usuario: dict) -> Usuario:
         """Añade la instancia al contexto de la sesión (sin commit)."""
-        db.add(usuario)
-        return usuario
+        nuevo_usuario=Usuario(**usuario)
+        db.add(nuevo_usuario)
+        return nuevo_usuario
 
     @staticmethod
     async def update(db: AsyncSession, usuario_db: Usuario, update_data: dict) -> Usuario:

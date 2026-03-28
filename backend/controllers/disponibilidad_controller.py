@@ -2,18 +2,18 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
-from futurebody.backend.database import get_db
-from futurebody.backend.schemas.disponibilidad_schema import DisponibilidadCreate, DisponibilidadUpdate, DisponibilidadResponse
-from futurebody.backend.services.disponibilidad_service import (
+from backend.database import get_db
+from backend.schemas.disponibilidad_schema import DisponibilidadCreate, DisponibilidadUpdate, DisponibilidadResponse
+from backend.services.disponibilidad_service import (
     get_disponibilidades_service,
     get_disponibilidad_by_id_service,
     create_disponibilidad_service,
     patch_disponibilidad_service,
     delete_disponibilidad_service
 )
-from futurebody.backend.exceptions.usuarios_exceptions import UserNotFoundError
+from backend.exceptions.usuarios_exceptions import UserNotFoundError
 
-from futurebody.backend.exceptions.disponibilidad_exceptions import (
+from backend.exceptions.disponibilidad_exceptions import (
    DisponibilidadError,
    DisponibilidadConflictCreationError,
    DisponibilidadNotFoundError,

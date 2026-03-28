@@ -1,19 +1,24 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from futurebody.backend.dao.mediciones_dao import MedicionDAO
-from futurebody.backend.schemas.mediciones_schema import MedicionCreate, MedicionUpdate
-from futurebody.backend.exceptions.mediciones_exceptions import MedicionNotFoundError
-from futurebody.backend.exceptions.clientes_exceptions import ClienteNotFoundError
-from futurebody.backend.dao.clientes_dao import ClienteDAO
-from futurebody.backend.exceptions.auth_exceptions import UnauthorizedError
+from backend.dao.mediciones_dao import MedicionDAO
+from backend.schemas.mediciones_schema import MedicionCreate, MedicionUpdate
+from backend.exceptions.mediciones_exceptions import MedicionNotFoundError
+from backend.exceptions.clientes_exceptions import ClienteNotFoundError
+from backend.dao.clientes_dao import ClienteDAO
+from backend.exceptions.auth_exceptions import UnauthorizedError
 
 
-async def get_medicions_service(db: AsyncSession, cliente_id: int):
+async def get_mediciones_service(db: AsyncSession, cliente_id: int, es_profesional:bool):
+    if not es_profesional:
+        raise UnauthorizedError("Solo un profesional puede registrar nuevas mediciones.")
     return await MedicionDAO.get_all(db=db, cliente_id=cliente_id)
     
-async def get_medicion_by_id_service(db: AsyncSession, medicion_id: int, cliente_id: int):
+async def get_medicion_by_id_service(db: AsyncSession, medicion_id: int, cliente_id: int, es_profesional:bool):
     medicion = await MedicionDAO.get_by_id(db=db, medicion_id=medicion_id, cliente_id=cliente_id)
     if not medicion:
         raise MedicionNotFoundError(medicion_id=medicion_id)
+    
+    if not es_profesional:
+        raise UnauthorizedError("Solo un profesional puede registrar nuevas mediciones.")
     return medicion
     
 async def create_medicion_service(db: AsyncSession, cliente_id: int, es_profesional:bool,medicion_data: MedicionCreate):

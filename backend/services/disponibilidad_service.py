@@ -1,10 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from futurebody.backend.dao.disponibilidad_dao import DisponibilidadDAO
-from futurebody.backend.models.disponibilidad_model import Disponibilidad
-from futurebody.backend.schemas.disponibilidad_schema import DisponibilidadCreate, DisponibilidadUpdate
-from futurebody.backend.exceptions.disponibilidad_exceptions import DisponibilidadError, DisponibilidadNotFoundError,InvalidTimeRangeError, DisponibilidadConflictCreationError
-from futurebody.backend.dao.usuarios_dao import UsuarioDAO
-from futurebody.backend.exceptions.usuarios_exceptions import UserNotFoundError
+from backend.dao.disponibilidad_dao import DisponibilidadDAO
+from backend.models.disponibilidad_model import Disponibilidad
+from backend.schemas.disponibilidad_schema import DisponibilidadCreate, DisponibilidadUpdate
+from backend.exceptions.disponibilidad_exceptions import DisponibilidadError, DisponibilidadNotFoundError,InvalidTimeRangeError, DisponibilidadConflictCreationError
+from backend.dao.usuarios_dao import UsuarioDAO
+from backend.exceptions.usuarios_exceptions import UserNotFoundError
 
 async def get_disponibilidades_service(db:AsyncSession,  cliente_id: int):
     try:

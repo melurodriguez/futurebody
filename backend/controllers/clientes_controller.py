@@ -2,16 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
-from futurebody.backend.database import get_db
-from futurebody.backend.schemas.clientes_schema import ClienteCreate, ClienteUpdate, ClienteResponse
-from futurebody.backend.services.clientes_service import (
+from backend.database import get_db
+from backend.schemas.clientes_schema import ClienteCreate, ClienteUpdate, ClienteResponse
+from backend.services.clientes_service import (
     get_clientes_service,
     get_cliente_by_id,
     create_cliente_service,
     patch_cliente_service,
     delete_cliente_service
 )
-from futurebody.backend.exceptions.clientes_exceptions import ClienteAlreadyExistsError,ClienteError,ClienteNotFoundError,IncompatibleGenderDataError,InvalidBirthDateError
+from backend.exceptions.clientes_exceptions import ClienteAlreadyExistsError,ClienteError,ClienteNotFoundError,IncompatibleGenderDataError,InvalidBirthDateError
 
 router = APIRouter(prefix='/clientes', tags=['Clientes'])
 

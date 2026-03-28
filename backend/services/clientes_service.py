@@ -1,10 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from futurebody.backend.dao.clientes_dao import ClienteDAO
-from futurebody.backend.schemas.clientes_schema import ClienteCreate, ClienteUpdate
-from futurebody.backend.models.clientes_model import Cliente
-from futurebody.backend.exceptions.clientes_exceptions import ClienteAlreadyExistsError,ClienteError,ClienteNotFoundError,IncompatibleGenderDataError,InvalidBirthDateError
+from backend.dao.clientes_dao import ClienteDAO
+from backend.schemas.clientes_schema import ClienteCreate, ClienteUpdate
+from backend.models.clientes_model import Cliente
+from backend.exceptions.clientes_exceptions import ClienteAlreadyExistsError,ClienteError,ClienteNotFoundError,IncompatibleGenderDataError,InvalidBirthDateError
 from datetime import datetime
-from futurebody.backend.dao.usuarios_dao import UsuarioDAO
+from backend.dao.usuarios_dao import UsuarioDAO
 async def get_clientes_service(db:AsyncSession):
     try:
         return await ClienteDAO.get_all(db=db)

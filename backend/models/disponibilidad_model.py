@@ -14,7 +14,7 @@ class Disponibilidad(Base):
     id=Column(Integer, primary_key=True, index=True)
     usuario_id=Column(Integer, ForeignKey("usuarios.id"), index=True)
     fecha = Column(Date, nullable=False, index=True)
-    hora_inicio=Column(Time),
+    hora_inicio=Column(Time)
     hora_fin=Column(Time)
 
     usuario=relationship("Usuario", back_populates="disponibilidad")

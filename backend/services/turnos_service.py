@@ -1,20 +1,19 @@
 from datetime import timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from futurebody.backend.dao.turnos_dao import TurnoDAO
-from futurebody.backend.exceptions.turnos_exceptions import (
+from backend.dao.turnos_dao import TurnoDAO
+from backend.exceptions.turnos_exceptions import (
     TurnoNotFoundError,
     TurnoConflictError,
     TurnoError,
     InvalidAmountPerWeekError,
-    InvalidDateError,
     PastDateError,
     LateCancellationError,
     UnauthorizedTurnoAccessError,
     TurnoUpdateNotAllowedError
 )
-from futurebody.backend.exceptions.usuarios_exceptions import UserNotFoundError
-from futurebody.backend.schemas.turnos_schema import TurnoCreate, TurnoUpdate
-from futurebody.backend.services.usuarios_service import get_usuario_by_id_service
+from backend.exceptions.usuarios_exceptions import UserNotFoundError
+from backend.schemas.turnos_schema import TurnoCreate, TurnoUpdate
+from backend.services.usuarios_service import get_usuario_by_id_service
 from datetime import datetime
 
 async def validar_cancelacion_antelacion(fecha_turno: datetime, horas_minimas: int = 2):
@@ -33,20 +32,33 @@ async def verificar_limite_semanal(db, cliente_id, fecha_turno):
     if conteo >= 2:
         raise InvalidAmountPerWeekError(status_code=400, detail="Límite de 2 entrenamientos por semana alcanzado.")
     
-async def get_all_turnos_service(db:AsyncSession, cliente_id:int | None, usuario_id:int|None):
+async def get_all_turnos_service(db: AsyncSession, usuario_id: int, rol: str):
+    """
+    Si es profesional, ve todos.
+    Si es cliente, solo los suyos.
+    """
     try:
-        return await TurnoDAO.get_all(db=db, cliente_id=cliente_id, usuario_id=usuario_id)
+        if rol == "profesional":
+            # El profesional ve todo, pasamos cliente_id como None
+            return await TurnoDAO.get_all(db=db, cliente_id=None)
+        
+        # El cliente solo ve lo suyo
+        return await TurnoDAO.get_all(db=db, cliente_id=usuario_id)
     except Exception as e:
-        raise
+        raise e
 
-async def get_turno_by_id_service(db:AsyncSession, turno_id:int, cliente_id:int):
+async def get_turno_by_id_service(db: AsyncSession, turno_id: int, usuario_id: int, rol: str):
     turno = await TurnoDAO.get_by_id(db, turno_id)
 
     if not turno:
         raise TurnoNotFoundError(status_code=404, detail="El turno no existe")
 
-    if turno.cliente_id != cliente_id:
-        raise UnauthorizedTurnoAccessError(status_code=403, detail="No tienes permiso para ver este turno")
+    # Si es cliente, verificamos propiedad. Si es profesional, ignoramos esta validación.
+    if rol == "cliente" and turno.cliente_id != usuario_id:
+        raise UnauthorizedTurnoAccessError(
+            status_code=403, 
+            detail="No tienes permiso para ver este turno"
+        )
 
     return turno
 
@@ -79,22 +91,20 @@ async def create_turno_service(db: AsyncSession, cliente_id: int, turno_data: Tu
         raise e
 
 
-async def patch_turno_service(db: AsyncSession, cliente_id: int, turno_id: int, update_dict: TurnoUpdate):
+async def patch_turno_service(db: AsyncSession, usuario_id: int, rol: str, turno_id: int, update_dict: TurnoUpdate):
     turno_db = await TurnoDAO.get_by_id(db=db, turno_id=turno_id)
     if not turno_db:
         raise TurnoNotFoundError(turno_id=turno_id)
     
-    if turno_db.cliente_id != cliente_id:
+    # El profesional puede editar cualquier turno, el cliente solo el suyo
+    if rol == "cliente" and turno_db.cliente_id != usuario_id:
         raise UnauthorizedTurnoAccessError()
     
     update_data = update_dict.model_dump(exclude_unset=True)
 
-    if "fecha" in update_data:
-        raise TurnoUpdateNotAllowedError()
-
     if update_data.get("estado") == "cancelado":
         ahora = datetime.now()
-        if turno_db.fecha < ahora + timedelta(hours=2):
+        if rol == "cliente" and turno_db.fecha < ahora + timedelta(hours=2):
             raise LateCancellationError(horas=2)
 
     try:
@@ -102,11 +112,10 @@ async def patch_turno_service(db: AsyncSession, cliente_id: int, turno_id: int, 
         await db.commit()
         await db.refresh(turno_db)
         return turno_db
-        
     except Exception as e:
         await db.rollback()
         raise e
-
+    
 async def delete_turno_service(db:AsyncSession, turno_id:int, usuario_id:int):
 
     usuario_db=await get_usuario_by_id_service(db=db, usuario_id=usuario_id)

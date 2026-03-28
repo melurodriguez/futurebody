@@ -1,10 +1,7 @@
 from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Text, TIMESTAMP, func
 from sqlalchemy.orm import relationship, declarative_base
 import enum
-
-Base = declarative_base()
-
-# Definimos el Enum de Python para que coincida con el de MySQL
+from backend.database import Base
 class TipoComida(enum.Enum):
     desayuno = "desayuno"
     almuerzo = "almuerzo"
