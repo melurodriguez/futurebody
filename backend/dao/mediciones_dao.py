@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List, Optional
-from futurebody.backend.models.mediciones_model import Medicion
+from backend.models.mediciones_model import Medicion
 
 class MedicionDAO:
 

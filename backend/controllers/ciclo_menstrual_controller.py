@@ -2,18 +2,18 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
-from futurebody.backend.database import get_db
-from futurebody.backend.schemas.ciclo_menstrual_schema import CicloMenstrualCreate, CicloMenstrualResponse, CicloMenstrualUpdate
-from futurebody.backend.services.ciclo_menstrual_service import (
+from backend.database import get_db
+from backend.schemas.ciclo_menstrual_schema import CicloMenstrualCreate, CicloMenstrualResponse, CicloMenstrualUpdate
+from backend.services.ciclo_menstrual_service import (
     get_all_ciclos_service,
     get_ciclo_by_id_Service,
     create_ciclo_service,
     patch_ciclo_service,
     delete_ciclo_service
 )
-from futurebody.backend.exceptions.clientes_exceptions import ClienteNotFoundError
+from backend.exceptions.clientes_exceptions import ClienteNotFoundError
 
-from futurebody.backend.exceptions.ciclo_exceptions import(
+from backend.exceptions.ciclo_exceptions import(
     CicloFutureDateError, CicloInvalidGenderError, CicloNotFoundError
 )
 

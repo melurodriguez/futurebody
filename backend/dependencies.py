@@ -2,11 +2,11 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
-from futurebody.backend.database import get_db
-from futurebody.backend.services.usuarios_service import get_usuario_by_id_service
+from backend.database import get_db
+from backend.services.usuarios_service import get_usuario_by_id_service
 from .config import settings
 from datetime import datetime,timedelta, timezone
-from futurebody.backend.models.usuarios_model import Usuario
+from backend.models.usuarios_model import Usuario
 from passlib.context import CryptContext
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")

@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List, Optional
 from sqlalchemy import func
-from futurebody.backend.models.objetivos_model import Objetivo
+from backend.models.objetivos_model import Objetivo
 
 class ObjetivoDAO:
 

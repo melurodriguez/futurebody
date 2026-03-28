@@ -1,35 +1,46 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from futurebody.backend.schemas.objetivos_schema import ObjetivoCreate, ObjetivoUpdate
-from futurebody.backend.dao.objetivos_dao import ObjetivoDAO
-from futurebody.backend.dao.clientes_dao import ClienteDAO
+from backend.schemas.objetivos_schema import ObjetivoCreate, ObjetivoUpdate
+from backend.dao.objetivos_dao import ObjetivoDAO
+from backend.dao.clientes_dao import ClienteDAO
 from fastapi import HTTPException, status
 from datetime import datetime
-from futurebody.backend.exceptions.auth_exceptions import UnauthorizedError
+from backend.exceptions.auth_exceptions import UnauthorizedError
+from backend.exceptions.objetivos_exceptions import ObjetivoLimitReachedError,ObjetivoNotFoundError
 
 
-
-async def get_all_by_cliente_service(db: AsyncSession, cliente_id: int):
+async def get_all_by_cliente_service(db: AsyncSession, cliente_id: int, usuario_id: int, es_profesional: bool):
+    """
+    Un cliente solo puede pedir sus propios objetivos. 
+    Un profesional puede pedir los de cualquier cliente_id.
+    """
+    if not es_profesional and cliente_id != usuario_id:
+        raise UnauthorizedError("No tienes permiso para ver los objetivos de otro cliente.")
+    
     return await ObjetivoDAO.get_all(db=db, cliente_id=cliente_id)
 
-async def get_objetivo_by_id_service(db:AsyncSession, objetivo_id:int, cliente_id:int):
-    return await ObjetivoDAO.get_by_id(db=db, objetivo_id=objetivo_id, cliente_id=cliente_id)
+async def get_objetivo_by_id_service(db: AsyncSession, objetivo_id: int, cliente_id: int, usuario_id: int, es_profesional: bool):
+    if not es_profesional and cliente_id != usuario_id:
+        raise UnauthorizedError("Acceso denegado a este objetivo.")
+
+    objetivo = await ObjetivoDAO.get_by_id(db=db, objetivo_id=objetivo_id, cliente_id=cliente_id)
+    if not objetivo:
+        raise ObjetivoNotFoundError(objetivo_id=objetivo_id)
+    
+    return objetivo
+
 
 async def create_objetivo_service(
     db: AsyncSession, 
     objetivo_in: ObjetivoCreate, 
-    cliente_id: int,
-    es_profesional:bool
+    cliente_id: int, 
+    es_profesional: bool
 ):
     if not es_profesional:
-        raise UnauthorizedError("Solo un profesional puede registrar nuevas mediciones.")
+        raise UnauthorizedError("Solo un profesional puede crear objetivos o mediciones.")
 
     conteo_incompletos = await ObjetivoDAO.count_incompletos(db, cliente_id)
-    
     if conteo_incompletos >= 2:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No puedes crear más objetivos. Tienes 2 o más objetivos incompletos pendientes."
-        )
+        raise ObjetivoLimitReachedError()
 
     datos_dict = objetivo_in.model_dump()
     datos_dict["cliente_id"] = cliente_id
@@ -43,14 +54,19 @@ async def create_objetivo_service(
         await db.rollback()
         raise e
 
-async def patch_objetivo_service(db: AsyncSession, objetivo_id: int, cliente_id:int, es_profesional:bool,objetivo_data: ObjetivoUpdate):
-    
+async def patch_objetivo_service(
+    db: AsyncSession, 
+    objetivo_id: int, 
+    cliente_id: int, 
+    es_profesional: bool, 
+    objetivo_data: ObjetivoUpdate
+):
     if not es_profesional:
-        raise UnauthorizedError("Solo un profesional puede registrar nuevas mediciones.")
+        raise UnauthorizedError("Solo el profesional está autorizado a modificar objetivos.")
     
     objetivo_db = await ObjetivoDAO.get_by_id(db=db, objetivo_id=objetivo_id, cliente_id=cliente_id)
     if not objetivo_db:
-        raise HTTPException(status_code=404, detail="objetivo no encontrado")
+        raise ObjetivoNotFoundError(objetivo_id=objetivo_id)
 
     update_data = objetivo_data.model_dump(exclude_unset=True)
     
@@ -63,15 +79,13 @@ async def patch_objetivo_service(db: AsyncSession, objetivo_id: int, cliente_id:
         await db.rollback()
         raise e
 
-async def delete_objetivo_service(db: AsyncSession, objetivo_id: int, cliente_id: int, es_profesional:bool):
-
+async def delete_objetivo_service(db: AsyncSession, objetivo_id: int, cliente_id: int, es_profesional: bool):
     if not es_profesional:
-        raise UnauthorizedError("Solo un profesional puede registrar nuevas mediciones.")
+        raise UnauthorizedError("Solo el profesional puede eliminar objetivos.")
 
     objetivo_db = await ObjetivoDAO.get_by_id(db=db, objetivo_id=objetivo_id, cliente_id=cliente_id) 
-    
     if not objetivo_db:
-        raise HTTPException(status_code=404, detail="Objetivo no encontrado para este cliente")
+        raise ObjetivoNotFoundError(objetivo_id=objetivo_id)
     
     try:
         await ObjetivoDAO.delete(db=db, objetivo_db=objetivo_db)

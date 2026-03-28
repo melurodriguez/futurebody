@@ -1,10 +1,10 @@
 # service/comida_service.py
-from futurebody.backend.dao.comidas_dao import ComidaDao
+from backend.dao.comidas_dao import ComidaDao
 from sqlalchemy.ext.asyncio import AsyncSession
-from futurebody.backend.schemas.comidas_schema import ComidaCreate, ComidaUpdate
-from futurebody.backend.exceptions.comidas_exceptions import ComidaAlreadyExistsError, ComidaNotFoundError, ComidaOwnershipError
-from futurebody.backend.dao.clientes_dao import ClienteDAO
-from futurebody.backend.exceptions.clientes_exceptions import ClienteNotFoundError
+from backend.schemas.comidas_schema import ComidaCreate, ComidaUpdate
+from backend.exceptions.comidas_exceptions import ComidaAlreadyExistsError, ComidaNotFoundError, ComidaOwnershipError
+from backend.dao.clientes_dao import ClienteDAO
+from backend.exceptions.clientes_exceptions import ClienteNotFoundError
 
 async def get_comidas_service(db:AsyncSession, cliente_id:int):
     try:

@@ -22,8 +22,7 @@ class Usuario(Base):
     is_profile_complete=Column(Boolean, default=False)
     #actualizado_en = Column(DateTime, onupdate=func.now())
 
-    cliente=relationship("Cliente", back_populates="usuario")
-    profesional=relationship("Profesional", back_populates="usuario")
+    cliente = relationship("Cliente", back_populates="usuario", uselist=False)
     turnos=relationship("Turno", back_populates="usuario")
     disponibilidad=relationship("Disponibilidad", back_populates="usuario")
 

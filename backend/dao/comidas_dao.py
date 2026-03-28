@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select, and_
+from sqlalchemy import select, and_
 from typing import List, Optional
-from futurebody.backend.models.comidas_model import Comida
+from backend.models.comidas_model import Comida
 from datetime import date
 import enum
 

@@ -1,10 +1,10 @@
-from futurebody.backend.dao.usuarios_dao import UsuarioDAO
+from backend.dao.usuarios_dao import UsuarioDAO
 from sqlalchemy.ext.asyncio import AsyncSession
-from futurebody.backend.dependencies import verify_password, create_access_token, create_refresh_token, hash_password
+from backend.dependencies import verify_password, create_access_token, create_refresh_token, hash_password
 from fastapi import HTTPException
-from futurebody.backend.schemas.usuarios_schema import UsuarioCreate, UsuarioUpdate
-from futurebody.backend.dao.usuarios_dao import UsuarioDAO
-from futurebody.backend.models.usuarios_model import Usuario
+from backend.schemas.usuarios_schema import UsuarioCreate, UsuarioUpdate
+from backend.dao.usuarios_dao import UsuarioDAO
+from backend.models.usuarios_model import Usuario
 
 async def validate_user_credentials(email: str, password: str, db: AsyncSession):
     user = await UsuarioDAO.get_by_email(db=db, email=email)

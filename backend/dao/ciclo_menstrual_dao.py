@@ -3,7 +3,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List, Optional
-from futurebody.backend.models.ciclo_menstrual_model import CicloMenstrual
+from backend.models.ciclo_menstrual_model import CicloMenstrual
 
 class CicloDAO:
 

@@ -2,18 +2,18 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
-from futurebody.backend.database import get_db
-from futurebody.backend.schemas.comidas_schema import ComidaCreate, ComidaResponse, ComidaUpdate
-from futurebody.backend.services.comidas_service import (
+from backend.database import get_db
+from backend.schemas.comidas_schema import ComidaCreate, ComidaResponse, ComidaUpdate
+from backend.services.comidas_service import (
     get_comidas_service,
     get_comida_by_id_Service,
     create_comida_service,
     patch_comida,
     delete_comida_service
 )
-from futurebody.backend.exceptions.clientes_exceptions import ClienteNotFoundError
+from backend.exceptions.clientes_exceptions import ClienteNotFoundError
 
-from futurebody.backend.exceptions.comidas_exceptions import(
+from backend.exceptions.comidas_exceptions import(
     ComidaAlreadyExistsError,
     ComidaNotFoundError,
     ComidaOwnershipError

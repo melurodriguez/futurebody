@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select, and_
+from sqlalchemy import select, and_
 from typing import List, Optional
-from futurebody.backend.models.disponibilidad_model import Disponibilidad
+from backend.models.disponibilidad_model import Disponibilidad
 from datetime import date, time
 
 class DisponibilidadDAO:

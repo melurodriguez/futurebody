@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, DateTime, Double
+from sqlalchemy import Column, Integer, ForeignKey, DateTime, Double, func
 import enum
 from backend.database import Base
 from sqlalchemy.orm import relationship
@@ -16,6 +16,6 @@ class MedidaCorporal(Base):
     pecho=Column(Double)
     brazo=Column(Double)
     pierna=Column(Double)
-    fecha=Column(DateTime, default=DateTime.now(), nullable=False, index=True)
+    fecha=Column(DateTime, server_default=func.now(), nullable=False, index=True)
 
     cliente=relationship("Cliente", back_populates="medidas_corporales")

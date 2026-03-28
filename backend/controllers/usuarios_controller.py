@@ -2,16 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
-from futurebody.backend.database import get_db
-from futurebody.backend.schemas.usuarios_schema import UsuarioCreate, UsuarioUpdate, UsuarioResponse
-from futurebody.backend.services.usuarios_service import (
+from backend.database import get_db
+from backend.schemas.usuarios_schema import UsuarioCreate, UsuarioUpdate, UsuarioResponse
+from backend.services.usuarios_service import (
     get_usuarios_service,
     get_usuario_by_id_service,
     create_usuario_service,
     patch_usuario_service,
     delete_usuario_service
 )
-from futurebody.backend.exceptions.usuarios_exceptions import (
+from backend.exceptions.usuarios_exceptions import (
     EmailAlreadyRegisteredError, 
     UserNotFoundError
 )

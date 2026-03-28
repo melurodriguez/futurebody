@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from futurebody.backend.dao.usuarios_dao import UsuarioDAO
-from futurebody.backend.models.usuarios_model import Usuario
-from futurebody.backend.schemas.usuarios_schema import UsuarioCreate, UsuarioUpdate
-from futurebody.backend.exceptions.usuarios_exceptions import (
+from backend.dao.usuarios_dao import UsuarioDAO
+from backend.models.usuarios_model import Usuario
+from backend.schemas.usuarios_schema import UsuarioCreate, UsuarioUpdate
+from backend.exceptions.usuarios_exceptions import (
     UserNotFoundError, 
     EmailAlreadyRegisteredError
 )
@@ -22,7 +22,7 @@ async def create_usuario_service(db: AsyncSession, usuario_data: UsuarioCreate):
         raise EmailAlreadyRegisteredError(usuario_data.email)
     
     try:
-        user_created = await UsuarioDAO.create(db=db, usuario_data=usuario_data.model_dump())
+        user_created = await UsuarioDAO.create(db=db, usuario=usuario_data.model_dump())
         await db.commit()
         await db.refresh(user_created)
         return user_created

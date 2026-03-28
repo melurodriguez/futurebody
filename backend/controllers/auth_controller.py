@@ -1,11 +1,11 @@
 from fastapi import  APIRouter, Depends, HTTPException
-from futurebody.backend.services.auth_service import validate_user_credentials
-from futurebody.backend.database import get_db
-from futurebody.backend.dependencies import create_access_token, decode_activation_token
+from backend.services.auth_service import validate_user_credentials
+from backend.database import get_db
+from backend.dependencies import create_access_token, decode_activation_token
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import OAuth2PasswordRequestForm
-from futurebody.backend.services.auth_service import register_user_service
-from futurebody.backend.schemas.usuarios_schema import UsuarioCreate
+from backend.services.auth_service import register_user_service
+from backend.schemas.usuarios_schema import UsuarioCreate
 
 router= APIRouter(prefix="/auth", tags=["Auth"])
 

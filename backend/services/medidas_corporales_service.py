@@ -1,11 +1,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from futurebody.backend.dao.medidas_corporales_dao import MedidaCorporalDAO
-from futurebody.backend.models.medidas_corporales_model import MedidaCorporal
-from futurebody.backend.schemas.medidas_corporales_schema import MedidaCorporalCreate, MedidaCorporalUpdate
-from futurebody.backend.exceptions.medidas_corporales_exceptions import MedidaCorporalNotFoundError
-from futurebody.backend.exceptions.clientes_exceptions import ClienteNotFoundError
-from futurebody.backend.dao.clientes_dao import ClienteDAO
-from futurebody.backend.exceptions.auth_exceptions import UnauthorizedError
+from backend.dao.medidas_corporales_dao import MedidaCorporalDAO
+from backend.models.medidas_corporales_model import MedidaCorporal
+from backend.schemas.medidas_corporales_schema import MedidaCorporalCreate, MedidaCorporalUpdate
+from backend.exceptions.medidas_corporales_exceptions import MedidaCorporalNotFoundError
+from backend.exceptions.clientes_exceptions import ClienteNotFoundError
+from backend.dao.clientes_dao import ClienteDAO
+from backend.exceptions.auth_exceptions import UnauthorizedError
 
 
 async def get_medidas_service(db:AsyncSession, cliente_id:int):
