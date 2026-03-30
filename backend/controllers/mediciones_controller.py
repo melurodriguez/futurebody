@@ -20,9 +20,9 @@ from backend.exceptions.mediciones_exceptions import(
 router = APIRouter(prefix='/mediciones', tags=['Mediciones'])
 
 @router.get("/", response_model=List[MedicionResponse])
-async def get_all_mediciones_router(cliente_id:int, db: AsyncSession = Depends(get_db)):
+async def get_all_mediciones_router(cliente_id:int, es_profesional:bool, db: AsyncSession = Depends(get_db)):
     try:
-        return await get_mediciones_service(db=db, cliente_id=cliente_id)
+        return await get_mediciones_service(db=db, cliente_id=cliente_id, es_profesional=es_profesional)
     except ClienteNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except UnauthorizedError as e:
@@ -30,9 +30,9 @@ async def get_all_mediciones_router(cliente_id:int, db: AsyncSession = Depends(g
 
 
 @router.get("/{medicion_id}", response_model=MedicionResponse)
-async def get_medicion_by_id_router(medicion_id: int, db: AsyncSession = Depends(get_db)):
+async def get_medicion_by_id_router(medicion_id: int, cliente_id:int, es_profesional:bool, db: AsyncSession = Depends(get_db)):
     try:
-        return await get_medicion_by_id_service(db, medicion_id)
+        return await get_medicion_by_id_service(db, medicion_id, cliente_id=cliente_id, es_profesional=es_profesional)
     except MedicionNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ClienteNotFoundError as e:
@@ -42,9 +42,9 @@ async def get_medicion_by_id_router(medicion_id: int, db: AsyncSession = Depends
 
 
 @router.post("/", response_model=MedicionResponse, status_code=status.HTTP_201_CREATED)
-async def create_medicion_router(medicion_data: MedicionCreate, db: AsyncSession = Depends(get_db)):
+async def create_medicion_router(medicion_data: MedicionCreate,cliente_id:int, es_profesional:bool, db: AsyncSession = Depends(get_db)):
     try:
-        return await create_medicion_service(db=db, medicion_data=medicion_data)
+        return await create_medicion_service(db=db, medicion_data=medicion_data, cliente_id=cliente_id, es_profesional=es_profesional)
     except ClienteNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except UnauthorizedError as e:
@@ -52,9 +52,9 @@ async def create_medicion_router(medicion_data: MedicionCreate, db: AsyncSession
 
 
 @router.patch("/{medicion_id}", response_model=MedicionResponse)
-async def update_medicion_router(medicion_id: int, medicion_data: MedicionUpdate, db: AsyncSession = Depends(get_db)):
+async def update_medicion_router(medicion_id: int, cliente_id:int, es_profesional:bool, medicion_data: MedicionUpdate, db: AsyncSession = Depends(get_db)):
     try:
-        return await patch_medicion_service(db=db, medicion_id=medicion_id, datos_nuevos=medicion_data)
+        return await patch_medicion_service(db=db, medicion_id=medicion_id, datos_nuevos=medicion_data, cliente_id=cliente_id, es_profesional=es_profesional)
     except MedicionNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except UnauthorizedError as e:
@@ -63,9 +63,9 @@ async def update_medicion_router(medicion_id: int, medicion_data: MedicionUpdate
 
 
 @router.delete("/{medicion_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_medicion_router(medicion_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_medicion_router(medicion_id: int, cliente_id:int, es_profesional:bool, db: AsyncSession = Depends(get_db)):
     try:
-        await delete_medicion_service(db=db, medicion_id=medicion_id)
+        await delete_medicion_service(db=db, medicion_id=medicion_id, cliente_id=cliente_id, es_profesional=es_profesional)
         return None
     except MedicionNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

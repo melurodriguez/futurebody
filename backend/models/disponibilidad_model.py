@@ -7,7 +7,12 @@ class Disponibilidad(Base):
     __tablename__="disponibilidad"
 
     __table_args__ = (
-        UniqueConstraint('usuario_id', 'fecha', name='uq_turno_prof_fecha'),
+        UniqueConstraint(
+            'usuario_id', 
+            'fecha', 
+            'hora_inicio',
+            name='uq_usuario_fecha_hora'
+        ),
     )
 
 

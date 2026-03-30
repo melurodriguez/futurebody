@@ -30,9 +30,9 @@ async def get_all_medidas_router(cliente_id:int, db: AsyncSession = Depends(get_
 
 
 @router.get("/{medida_id}", response_model=MedidaCorporalUpdate)
-async def get_medida_by_id_router(medida_id: int, db: AsyncSession = Depends(get_db)):
+async def get_medida_by_id_router(medida_id: int,cliente_id:int, db: AsyncSession = Depends(get_db)):
     try:
-        return await get_medida_by_id_service(db, medida_id)
+        return await get_medida_by_id_service(db, medida_id, cliente_id=cliente_id)
     except MedidaCorporalNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ClienteNotFoundError as e:
@@ -42,9 +42,9 @@ async def get_medida_by_id_router(medida_id: int, db: AsyncSession = Depends(get
 
 
 @router.post("/", response_model=MedidaCorporalUpdate, status_code=status.HTTP_201_CREATED)
-async def create_medida_router(medida_data: MedidaCorporalCreate, db: AsyncSession = Depends(get_db)):
+async def create_medida_router(cliente_id:int, es_profesional:bool, medida_data: MedidaCorporalCreate, db: AsyncSession = Depends(get_db)):
     try:
-        return await create_medida_service(db=db, medida_data=medida_data)
+        return await create_medida_service(db=db, medida_data=medida_data, cliente_id=cliente_id, es_profesional=es_profesional)
     except ClienteNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except UnauthorizedError as e:
@@ -52,9 +52,9 @@ async def create_medida_router(medida_data: MedidaCorporalCreate, db: AsyncSessi
 
 
 @router.patch("/{medida_id}", response_model=MedidaCorporalUpdate)
-async def update_medida_router(medida_id: int, medida_data: MedidaCorporalUpdate, db: AsyncSession = Depends(get_db)):
+async def update_medida_router(cliente_id:int, es_profesional:bool, medida_id: int, medida_data: MedidaCorporalUpdate, db: AsyncSession = Depends(get_db)):
     try:
-        return await patch_medida_service(db=db, medida_id=medida_id, datos_nuevos=medida_data)
+        return await patch_medida_service(db=db, medida_id=medida_id, datos_nuevos=medida_data, cliente_id=cliente_id, es_profesional=es_profesional)
     except MedidaCorporalNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except UnauthorizedError as e:
@@ -63,9 +63,9 @@ async def update_medida_router(medida_id: int, medida_data: MedidaCorporalUpdate
 
 
 @router.delete("/{medida_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_medida_router(medida_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_medida_router(cliente_id:int, es_profesional:bool, medida_id: int, db: AsyncSession = Depends(get_db)):
     try:
-        await delete_medida_service(db=db, medida_id=medida_id)
+        await delete_medida_service(db=db, medida_id=medida_id, cliente_id=cliente_id, es_profesional=es_profesional)
         return None
     except MedidaCorporalNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

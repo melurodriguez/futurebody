@@ -9,7 +9,7 @@ class ComidaNotFoundError(ComidaError):
     """Error cuando no se encuentra una comida específica."""
     def __init__(self, comida_id: int):
         super().__init__(
-            status_code=status.HTTP_404_NOT__FOUND,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No se encontró la comida con ID {comida_id} para este usuario."
         )
 

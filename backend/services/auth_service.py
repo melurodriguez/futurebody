@@ -5,18 +5,19 @@ from fastapi import HTTPException
 from backend.schemas.usuarios_schema import UsuarioCreate, UsuarioUpdate
 from backend.dao.usuarios_dao import UsuarioDAO
 from backend.models.usuarios_model import Usuario
+from backend.exceptions.usuarios_exceptions import EmailAlreadyRegisteredError, UserNotFoundError, InvalidCredentialsError, UserInactiveError
 
-async def validate_user_credentials(email: str, password: str, db: AsyncSession):
+async def validate_user_credentials( db: AsyncSession, email: str, password: str):
+    print(f"DEBUG: Buscando usuario con email: '{email}'") # Mira esto en tu consola
     user = await UsuarioDAO.get_by_email(db=db, email=email)
-
-    if not user or not verify_password(password, user.password):
-        return None
+    if not user:
+        raise UserNotFoundError()
+    
+    if not verify_password(password, user.password):
+        raise InvalidCredentialsError()
     
     if not user.is_active:
-        raise HTTPException(
-            status_code=403, 
-            detail="Tu cuenta aún no ha sido activada. Revisa tu correo o contacta al admin."
-        )
+        raise UserInactiveError()
     
     access_token = create_access_token(data={"sub": user.id, "rol": user.rol})
     refresh_token = create_refresh_token(user_id=user.id, rol=user.rol)
@@ -31,16 +32,15 @@ async def validate_user_credentials(email: str, password: str, db: AsyncSession)
 async def register_user_service(db: AsyncSession, usuario: UsuarioCreate):
     existe = await UsuarioDAO.get_by_email(db=db, email=usuario.email)
     if existe:
-        raise HTTPException(status_code=400, detail="El correo ya está registrado")
+        raise EmailAlreadyRegisteredError(email=usuario.email)
     
 
     user_data = usuario.model_dump(exclude={"password"})
-    user_data["contrasenia"] = hash_password(usuario.password)
-    
-    nuevo_usuario_model = Usuario(**user_data)
+    user_data["password"] = hash_password(usuario.password)
+
     
     try:
-        nuevo_usuario = await UsuarioDAO.create(db=db, usuario=nuevo_usuario_model)
+        nuevo_usuario = await UsuarioDAO.create(db=db, usuario=user_data)
         await db.commit()
         await db.refresh(nuevo_usuario)
         return nuevo_usuario

@@ -13,6 +13,7 @@ class ComidaBase(BaseModel):
     tipo: TipoEnum = Field(...,)
     descripcion: Optional[str] =Field(None)
     imagen_url: Optional[str]=Field(None, max_length=255)
+    fecha: datetime = Field(default_factory=datetime.now)
 
 class ComidaCreate(ComidaBase):
     cliente_id: int = Field(..., description="ID del cliente asociado")

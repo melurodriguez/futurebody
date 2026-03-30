@@ -7,21 +7,23 @@ from datetime import date, time
 class DisponibilidadDAO:
 
     @staticmethod
-    async def get_all(db: AsyncSession) -> List[Disponibilidad]:
+    async def get_all(db: AsyncSession, usuario_id:int) -> List[Disponibilidad]:
         """Obtiene todos los disponibilidads."""
-        result = await db.execute(select(Disponibilidad))
+        result = await db.execute(select(Disponibilidad).where(Disponibilidad.usuario_id==usuario_id))
         return list(result.scalars().all())
 
     @staticmethod
-    async def get_by_id(db: AsyncSession, disponibilidad_id: int) -> Optional[Disponibilidad]:
+    async def get_by_id(db: AsyncSession, disponibilidad_id: int, usuario_id:int) -> Optional[Disponibilidad]:
         """Busca un disponibilidad por su ID primario utilizando el método optimizado .get()"""
-        return await db.get(Disponibilidad, disponibilidad_id)
+        result= await db.execute(select(Disponibilidad).filter_by(id=disponibilidad_id,usuario_id=usuario_id))
+        return result.scalar_one_or_none()
 
     @staticmethod
-    async def create(db: AsyncSession, disponibilidad: Disponibilidad) -> Disponibilidad:
+    async def create(db: AsyncSession, disponibilidad: dict) -> Disponibilidad:
         """Añade la instancia al contexto de la sesión (sin commit)."""
-        db.add(disponibilidad)
-        return disponibilidad
+        nueva_dispo= Disponibilidad(**disponibilidad)
+        db.add(nueva_dispo)
+        return nueva_dispo
 
     @staticmethod
     async def update(db: AsyncSession, disponibilidad_db: Disponibilidad, update_data: dict) -> Disponibilidad:

@@ -23,10 +23,11 @@ class ObjetivoDAO:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def create(db: AsyncSession, objetivo: Objetivo) -> Objetivo:
+    async def create(db: AsyncSession, objetivo: dict) -> Objetivo:
         """Añade la instancia al contexto de la sesión (sin commit)."""
-        db.add(objetivo)
-        return objetivo
+        nuevo_objetivo=Objetivo(**objetivo)
+        db.add(nuevo_objetivo)
+        return nuevo_objetivo
 
     @staticmethod
     async def update(db: AsyncSession, objetivo_db: Objetivo, update_data: dict) -> Objetivo:

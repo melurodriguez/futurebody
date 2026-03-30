@@ -11,7 +11,7 @@ class CicloMenstrualCreate(CicloMenstrualBase):
 
 class CicloMenstrualUpdate(BaseModel):
     fecha_inicio: Optional[date]=None
-    fehca_fin: Optional[date]=None
+    fecha_fin: Optional[date]=None
 
 class CicloMenstrualResponse(CicloMenstrualBase):
     id: int

@@ -17,10 +17,11 @@ class ClienteDAO:
         return await db.get(Cliente, cliente_id)
 
     @staticmethod
-    async def create(db: AsyncSession, cliente: Cliente) -> Cliente:
+    async def create(db: AsyncSession, cliente: dict) -> Cliente:
         """Añade la instancia al contexto de la sesión (sin commit)."""
-        db.add(cliente)
-        return cliente
+        nuevo_cliente= Cliente(**cliente)
+        db.add(nuevo_cliente)
+        return nuevo_cliente
 
     @staticmethod
     async def update(db: AsyncSession, cliente_db: Cliente, update_data: dict) -> Cliente:

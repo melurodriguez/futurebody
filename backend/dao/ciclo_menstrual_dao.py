@@ -29,12 +29,12 @@ class CicloDAO:
         return result.scalars().first()
 
     @staticmethod
-    async def create(db: AsyncSession, cliente_id: int, data: dict) -> CicloMenstrual:
+    async def create(db: AsyncSession, data: dict) -> CicloMenstrual:
         """
         Crea la instancia del modelo a partir de un diccionario y 
         asegura la vinculación con el cliente_id.
         """
-        nuevo_ciclo = CicloMenstrual(**data, cliente_id=cliente_id)
+        nuevo_ciclo = CicloMenstrual(**data)
         db.add(nuevo_ciclo)
         return nuevo_ciclo
 

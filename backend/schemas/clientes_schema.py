@@ -11,7 +11,7 @@ class ClienteBase(BaseModel):
     nombre: str = Field(..., max_length=100)
     telefono: Optional[str] = Field(None, max_length=20)
     sexo: SexoEnum = SexoEnum.hombre
-    fecha_nacimiento: date 
+    fecha_nacimiento: date
 
 class ClienteCreate(ClienteBase):
     id:  int = Field(..., gt=0)
