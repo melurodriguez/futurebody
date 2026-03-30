@@ -17,9 +17,11 @@ class UsuarioDAO:
         return await db.get(Usuario, usuario_id)
     
     @staticmethod
-    async def get_by_email(db:AsyncSession, email:str):
+    async def get_by_email(db: AsyncSession, email: str):
         """Busca un usuario por su email"""
-        return await db.get(Usuario, email)
+        query = select(Usuario).where(Usuario.email == email)
+        result = await db.execute(query)
+        return result.scalar_one_or_none()
 
     @staticmethod
     async def create(db: AsyncSession, usuario: dict) -> Usuario:

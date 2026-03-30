@@ -5,9 +5,13 @@ from backend.schemas.comidas_schema import ComidaCreate, ComidaUpdate
 from backend.exceptions.comidas_exceptions import ComidaAlreadyExistsError, ComidaNotFoundError, ComidaOwnershipError
 from backend.dao.clientes_dao import ClienteDAO
 from backend.exceptions.clientes_exceptions import ClienteNotFoundError
+from backend.exceptions.auth_exceptions import UnauthorizedError
 
 async def get_comidas_service(db:AsyncSession, cliente_id:int):
     try:
+        cliente_db=await ClienteDAO.get_by_id(db=db, cliente_id=cliente_id)
+        if not cliente_db:
+            raise ClienteNotFoundError(cliente_id=cliente_id)
         return await ComidaDao.get_all_by_cliente(db=db, cliente_id=cliente_id)
     except Exception as e:
         raise e
@@ -22,19 +26,23 @@ async def create_comida_service(db:AsyncSession, cliente_id:int, comida:ComidaCr
 
     cliente=await ClienteDAO.get_by_id(cliente_id=cliente_id, db=db)
     if not cliente:
-        raise ClienteNotFoundError
+        raise ClienteNotFoundError(cliente_id=comida.cliente_id)
     
     comida_existente = await ComidaDao.get_by_date_and_type(
         db, 
         cliente_id=cliente_id, 
         fecha=comida.fecha, 
-        tipo=comida.tipo_comida
+        tipo=comida.tipo
     )
     if comida_existente:
-        raise ComidaAlreadyExistsError(fecha=comida.fecha, tipo=comida.tipo_comida)
+        raise ComidaAlreadyExistsError(fecha=comida.fecha, tipo=comida.tipo)
     
+
+    data=comida.model_dump()
+    data["cliente_id"]=cliente_id
+
     try:
-        comida_created= await ComidaDao.create(db=db, cliente_id=cliente_id, comida=comida.model_dump())
+        comida_created= await ComidaDao.create(db=db, comida_data=data)
         await db.commit()
         await db.refresh(comida_created)
         return comida_created
@@ -76,10 +84,18 @@ async def patch_comida(db: AsyncSession, comida_id: int, cliente_id: int, comida
 
 
 async def delete_comida_service(db: AsyncSession, comida_id: int, cliente_id: int):
-    comida_db = await ComidaDao.get_by_id(db, comida_id, cliente_id)
+    cliente = await ClienteDAO.get_by_id(db=db, cliente_id=cliente_id)
+    if not cliente:
+        raise ClienteNotFoundError(cliente_id=cliente_id)
+    
+    
+    comida_db = await ComidaDao.get_by_id(db, comida_id, cliente_id) 
     
     if not comida_db:
-        return ComidaNotFoundError(comida_id=comida_id) 
+        raise ComidaNotFoundError(comida_id=comida_id) 
+
+    if comida_db.cliente_id != cliente_id:
+        raise UnauthorizedError()
 
     try:
         await ComidaDao.delete(db, comida_db)

@@ -17,7 +17,7 @@ async def _validar_perfil_femenino(db: AsyncSession, cliente_id: int):
     if not cliente:
         raise ClienteNotFoundError(user_id=cliente_id)
         
-    if cliente.sexo != "femenino":
+    if cliente.sexo != "mujer":
         raise CicloInvalidGenderError()
 
 async def get_all_ciclos_service(db: AsyncSession, cliente_id: int):
@@ -38,11 +38,13 @@ async def create_ciclo_service(db: AsyncSession, cliente_id: int, ciclo_data: Ci
     if ciclo_data.fecha_inicio > datetime.now().date():
         raise CicloFutureDateError()
 
+    data=ciclo_data.model_dump()
+    data['cliente_id'] = cliente_id
+
     try:
         ciclo_created = await CicloDAO.create(
             db=db, 
-            cliente_id=cliente_id, 
-            data=ciclo_data.model_dump()
+            data=data
         )
         await db.commit()
         await db.refresh(ciclo_created)

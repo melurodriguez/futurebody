@@ -34,9 +34,9 @@ class ComidaDao:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def create(db: AsyncSession, cliente_id: int, comida_data: dict) -> Comida:
+    async def create(db: AsyncSession, comida_data: dict) -> Comida:
         """Crea la instancia asegurando el cliente_id."""
-        nueva_comida = Comida(**comida_data, cliente_id=cliente_id)
+        nueva_comida = Comida(**comida_data)
         db.add(nueva_comida)
         return nueva_comida
 

@@ -46,7 +46,7 @@ async def create_objetivo_service(
     datos_dict["cliente_id"] = cliente_id
 
     try:
-        objetivo_created = await ObjetivoDAO.create(db, datos_dict)
+        objetivo_created = await ObjetivoDAO.create(db, objetivo=datos_dict)
         await db.commit()
         await db.refresh(objetivo_created)
         return objetivo_created

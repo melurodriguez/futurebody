@@ -22,9 +22,9 @@ class MedidaCorporalDAO:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def create(db: AsyncSession, cliente_id:int ,medida: dict) -> MedidaCorporal:
+    async def create(db: AsyncSession ,medida: dict) -> MedidaCorporal:
         """Añade la instancia al contexto de la sesión (sin commit)."""
-        nueva_medida=MedidaCorporal(**medida, cliente_id=cliente_id)
+        nueva_medida=MedidaCorporal(**medida)
         db.add(nueva_medida)
         return nueva_medida
 

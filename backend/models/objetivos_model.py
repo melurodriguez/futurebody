@@ -22,7 +22,7 @@ class Objetivo(Base):
     tipo=Column(Enum(ObjetivoEnum), nullable=False,index=True )
     valor_inicial=Column(Double, nullable=False)
     valor_objetivo=Column(Double, nullable=False)
-    #estado=Column(Enum(EstadoEnum), default=EstadoEnum.incompleto)
+    estado=Column(Enum(EstadoEnum), default=EstadoEnum.incompleto)
 
 
     cliente=relationship("Cliente", back_populates="objetivos")

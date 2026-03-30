@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
-
+from backend.exceptions.usuarios_exceptions import UserNotFoundError
 from backend.database import get_db
 from backend.schemas.clientes_schema import ClienteCreate, ClienteUpdate, ClienteResponse
 from backend.services.clientes_service import (
@@ -34,6 +34,8 @@ async def create_cliente_router(cliente_data: ClienteCreate, db: AsyncSession = 
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except InvalidBirthDateError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except UserNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 @router.patch("/{cliente_id}", response_model=ClienteResponse)
 async def update_cliente_router(cliente_id: int, cliente_data: ClienteUpdate, db: AsyncSession = Depends(get_db)):

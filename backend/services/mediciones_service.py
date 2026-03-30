@@ -29,12 +29,12 @@ async def create_medicion_service(db: AsyncSession, cliente_id: int, es_profesio
     cliente=await ClienteDAO.get_by_id(db=db, cliente_id=cliente_id)
     if not cliente:
         raise ClienteNotFoundError(cliente_id=cliente_id)
-    
+    data=medicion_data.model_dump()
+    data["cliente_id"]=cliente_id
     try:
         medicion_created = await MedicionDAO.create(
             db=db, 
-            cliente_id=cliente_id, 
-            data=medicion_data.model_dump()
+            medicion=data
         )
         await db.commit()
         await db.refresh(medicion_created)

@@ -29,8 +29,10 @@ async def create_medida_service(db: AsyncSession, cliente_id:int, es_profesional
     if not cliente:
         raise ClienteNotFoundError(cliente_id=cliente_id)
     
+    data=medida_data.model_dump()
+    data["cliente_id"]=cliente_id
     try:
-        medida_created= await MedidaCorporalDAO.create(db=db, cliente_id=cliente_id, data=medida_data.model_dump())
+        medida_created= await MedidaCorporalDAO.create(db=db, medida=data)
         await db.commit()
         await db.refresh(medida_created)
         return medida_created

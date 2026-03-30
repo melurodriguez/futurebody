@@ -3,8 +3,11 @@ from backend.dao.clientes_dao import ClienteDAO
 from backend.schemas.clientes_schema import ClienteCreate, ClienteUpdate
 from backend.models.clientes_model import Cliente
 from backend.exceptions.clientes_exceptions import ClienteAlreadyExistsError,ClienteError,ClienteNotFoundError,IncompatibleGenderDataError,InvalidBirthDateError
-from datetime import datetime
+from datetime import datetime, date
 from backend.dao.usuarios_dao import UsuarioDAO
+from backend.exceptions.usuarios_exceptions import UserNotFoundError
+
+
 async def get_clientes_service(db:AsyncSession):
     try:
         return await ClienteDAO.get_all(db=db)
@@ -22,7 +25,11 @@ async def create_cliente_service(db:AsyncSession, cliente_data:ClienteCreate):
     if existe:
         raise ClienteAlreadyExistsError(cliente_id=cliente_data.id)
     
-    if cliente_data.fecha_nacimiento > datetime.now():
+    usuario_db = await UsuarioDAO.get_by_id(db, usuario_id=cliente_data.id)
+    if not usuario_db:
+        raise UserNotFoundError(user_id=cliente_data.id)
+    
+    if cliente_data.fecha_nacimiento > date.today():
         raise InvalidBirthDateError()
     
     try:
@@ -46,7 +53,7 @@ async def patch_cliente_service(db:AsyncSession, cliente_id:int ,cliente_data:Cl
     update_data=cliente_data.model_dump(exclude_unset=True)
 
     if "fecha_nacimiento" in update_data:
-        if update_data["fecha_nacimiento"] > datetime.now():
+        if update_data["fecha_nacimiento"] > date.today():
             raise InvalidBirthDateError()
     
     try:
