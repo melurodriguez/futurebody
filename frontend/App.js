@@ -1,26 +1,25 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
-import HomeScreen from './app/profesional/HomeScreen'
-import BottomBar from './navigation/BottomBar';
 import { NavigationContainer } from '@react-navigation/native';
-import ProfileScreen from './app/profesional/ProfileScreen';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import LoginForm from './components/LoginForms';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+import CoachTabs from './navigation/CoachTabs';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { ColorPalette } from './theme';
+
+const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <NavigationContainer>
-        <StatusBar style="auto" />
-        {/* <HomeScreen/> */}
-        {/* <BottomBar/> */}
-        <ProfileScreen/>
-    </NavigationContainer>
-    
+    <SafeAreaProvider>
+      <SafeAreaView style={{ flex: 1, backgroundColor: ColorPalette.background }}>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name='Login' component={LoginForm} />
+          <Stack.Screen name='Main' component={CoachTabs} />
+          <Stack.Screen name='forgot-password' component={ForgotPasswordScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-
-  },
-});
