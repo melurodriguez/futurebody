@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { ColorPalette } from '../theme'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useAuthStore } from '../apis/useAuthStore'
+import { Alert, ActivityIndicator } from 'react-native'; 
 
 export default function LoginForm({navigation}) {
     const [loginForm, setLoginForm] = useState({
@@ -9,17 +11,27 @@ export default function LoginForm({navigation}) {
         password: ""
     })
 
-    const handleChange = (value, field) => {
-        setLoginForm({
-            ...loginForm,
-            [field]: value
-        })
-    }
+    const login = useAuthStore((state) => state.login);
+    const loading = useAuthStore((state) => state.loading);
 
-    const handleLogin = () => {
-        console.log("Datos de acceso:", loginForm);
-        navigation.navigate('Main')
-    }
+    const handleChange = (value, field) => {
+        setLoginForm({ ...loginForm, [field]: value });
+    };
+
+    const handleLogin = async () => {
+        if (!loginForm.email || !loginForm.password) {
+            Alert.alert("Error", "Por favor completa todos los campos");
+            return;
+        }
+
+        const result = await login(loginForm.email, loginForm.password);
+
+        if (result.success) {
+            navigation.navigate('Main');
+        } else {
+            Alert.alert("Error de Login", result.message);
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -50,8 +62,16 @@ export default function LoginForm({navigation}) {
                 />
             </View>
 
-            <TouchableOpacity style={styles.ingresarButton} onPress={handleLogin}>
-                <Text style={styles.ingresarButtonText}>Ingresar</Text>
+            <TouchableOpacity 
+                style={[styles.ingresarButton, loading && { opacity: 0.7 }]} 
+                onPress={handleLogin}
+                disabled={loading}
+            >
+                {loading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                    <Text style={styles.ingresarButtonText}>Ingresar</Text>
+                )}
             </TouchableOpacity>
 
             <View style={styles.footer}>
@@ -62,6 +82,8 @@ export default function LoginForm({navigation}) {
                     <Text style={styles.linkText}>No tienes cuenta? <Text style={{color: ColorPalette.accent}}>Regístrate</Text></Text>
                 </TouchableOpacity>
             </View>
+
+            
         </View>
     )
 }

@@ -25,4 +25,5 @@ class Usuario(Base):
     cliente = relationship("Cliente", back_populates="usuario", uselist=False)
     turnos=relationship("Turno", back_populates="usuario")
     disponibilidad=relationship("Disponibilidad", back_populates="usuario")
+    configuracion= relationship("ConfiguracionCoach", back_populates="usuario")
 

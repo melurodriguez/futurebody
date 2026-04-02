@@ -2,6 +2,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List
 from enum import Enum
 from datetime import date, datetime
+from backend.schemas.turnos_schema import TurnoResponse
+from backend.schemas.objetivos_schema import ObjetivoResponse
 
 class SexoEnum(str, Enum):
     hombre = "hombre"
@@ -29,7 +31,6 @@ class ClienteResponse(ClienteBase):
 
 
 class ClienteDetalleResponse(ClienteResponse):
-    # Asumiendo que tienes esquemas para Turno y Objetivo
-    # turnos: List[TurnoResponse] = []
-    # objetivos: List[ObjetivoResponse] = []
+    turnos: List[TurnoResponse] = []
+    objetivos: List[ObjetivoResponse] = []
     pass

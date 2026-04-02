@@ -6,6 +6,12 @@ from backend.exceptions.disponibilidad_exceptions import DisponibilidadError, Di
 from backend.dao.usuarios_dao import UsuarioDAO
 from backend.exceptions.auth_exceptions import UnauthorizedError
 from backend.exceptions.usuarios_exceptions import UserNotFoundError
+from datetime import date
+from backend.dao.configuracion_usuario_dao import ConfiguracionCoachDAO
+from backend.exceptions.config_exceptions import ConfigError, ConfigNotFound
+import logging
+
+logger = logging.getLogger(__name__)
 
 async def get_disponibilidades_service(db:AsyncSession,  usuario_id: int):
     try:
@@ -112,3 +118,4 @@ async def delete_disponibilidad_service(db:AsyncSession,  usuario_id: int, dispo
     except Exception as e:
         await db.rollback()
         raise e
+    

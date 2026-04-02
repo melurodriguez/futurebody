@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from backend.exceptions.usuarios_exceptions import UserNotFoundError
 from backend.database import get_db
-from backend.schemas.clientes_schema import ClienteCreate, ClienteUpdate, ClienteResponse
+from backend.schemas.clientes_schema import ClienteCreate, ClienteUpdate, ClienteResponse, ClienteDetalleResponse
 from backend.services.clientes_service import (
     get_clientes_service,
     get_cliente_by_id,
@@ -19,7 +19,7 @@ router = APIRouter(prefix='/clientes', tags=['Clientes'])
 async def get_all_clientes_router(db: AsyncSession = Depends(get_db)):
     return await get_clientes_service(db=db)
 
-@router.get("/{cliente_id}", response_model=ClienteResponse)
+@router.get("/{cliente_id}", response_model=ClienteDetalleResponse)
 async def get_cliente_by_id_router(cliente_id: int, db: AsyncSession = Depends(get_db)):
     try:
         return await get_cliente_by_id(db, cliente_id)

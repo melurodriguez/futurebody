@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, FlatList, Text, StyleSheet, TouchableOpacity } from "react-native";
 import SearchBar from "../../components/SearchBar";
 import CreateUserModal from "../../components/coach/CreateUserModal";
 import { ColorPalette } from '../../theme';
 import ClientCard from '../../components/coach/ClientCard';
+import { Feather } from '@expo/vector-icons';
+import { useClientStore } from '../../apis/coach/useClientsStore';
 
 const MOCK_CLIENTS = [
     { id: '1', name: 'Juan Pérez', email: 'juan@fit.com', plan: 'Premium' },
@@ -17,9 +19,17 @@ export default function ClientsScreen() {
     const [search, setSearch] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
 
-    const filteredClients = MOCK_CLIENTS.filter(client => 
-        client.name.toLowerCase().includes(search.toLowerCase()) ||
-        client.email.toLowerCase().includes(search.toLowerCase())
+    // 1. Extraemos lo que necesitamos del store
+    const { clients, getClients, error } = useClientStore();
+
+    // 2. Cargamos los datos al montar la pantalla
+    useEffect(() => {
+        getClients();
+    }, []);
+
+    // 3. Filtramos sobre los datos que vienen del store
+    const filteredClients = clients.filter(client => 
+        client.nombre?.toLowerCase().includes(search.toLowerCase()) // Cambiado a 'nombre'
     );
 
     const renderClient = ({ item }) => (
@@ -28,28 +38,37 @@ export default function ClientsScreen() {
 
     return (
         <View style={styles.container}>
+            {/* Título de sección para consistencia con Stats */}
+            <Text style={styles.headerTitle}>Mis Clientes</Text>
+
             <SearchBar 
                 value={search} 
                 onChangeText={(text) => setSearch(text)} 
                 placeholder="Buscar por nombre o email..." 
+                // Asegúrate que tu componente SearchBar use ColorPalette internamente
             />
 
             <FlatList
                 data={filteredClients}
                 keyExtractor={item => item.id}
                 renderItem={renderClient}
-                contentContainerStyle={{ paddingBottom: 100 }}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
-                    <Text style={styles.emptyText}>No se encontraron clientes.</Text>
+                    <View style={styles.emptyContainer}>
+                        <Feather name="users" size={40} color={ColorPalette.textMuted} />
+                        <Text style={styles.emptyText}>No se encontraron clientes.</Text>
+                    </View>
                 }
             />
 
-            {/* Botón flotante para abrir el Modal que creamos antes */}
+            {/* FAB con estilo Lila y Sombra Suave */}
             <TouchableOpacity 
                 style={styles.fab} 
                 onPress={() => setModalVisible(true)}
+                activeOpacity={0.8}
             >
-                <Text style={styles.fabText}>+</Text>
+                <Feather name="plus" size={28} color="white" />
             </TouchableOpacity>
 
             <CreateUserModal 
@@ -63,34 +82,46 @@ export default function ClientsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: ColorPalette.background, // Tu fondo Dark
-        paddingHorizontal: 16,
-        paddingTop: 10,
+        backgroundColor: ColorPalette.background,
+        paddingHorizontal: 20,
     },
-   
+    headerTitle: {
+        fontSize: 28,
+        fontWeight: '800',
+        color: ColorPalette.textPrimary,
+        marginTop: 60,
+        marginBottom: 10,
+    },
+    listContent: { 
+        paddingTop: 10,
+        paddingBottom: 100 
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        marginTop: 60,
+    },
     emptyText: {
-        color: '#64748b',
+        color: ColorPalette.textSecondary,
         textAlign: 'center',
-        marginTop: 40,
+        marginTop: 12,
+        fontSize: 16,
+        fontWeight: '500',
     },
     fab: {
         position: 'absolute',
-        bottom: 20,
+        bottom: 30,
         right: 20,
-        backgroundColor: '#3B5BFF',
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+        backgroundColor: ColorPalette.primary, // Ahora es el lila #7C3AED
+        width: 60,
+        height: 60,
+        borderRadius: 20, // Forma Squircle/Moderna en lugar de círculo perfecto
         justifyContent: 'center',
         alignItems: 'center',
-        elevation: 8,
-        shadowColor: '#3B5BFF',
-        shadowOpacity: 0.4,
-        shadowRadius: 10,
-    },
-    fabText: {
-        color: 'white',
-        fontSize: 30,
-        lineHeight: 34,
+        // Sombra estilizada
+        elevation: 5,
+        shadowColor: ColorPalette.primary,
+        shadowOpacity: 0.3,
+        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: 8,
     }
 });

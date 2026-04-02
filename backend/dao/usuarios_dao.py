@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy import select, and_
 from typing import List, Optional
 from backend.models.usuarios_model import Usuario
 
@@ -9,6 +9,19 @@ class UsuarioDAO:
     async def get_all(db: AsyncSession) -> List[Usuario]:
         """Obtiene todos los usuarios."""
         result = await db.execute(select(Usuario))
+        return list(result.scalars().all())
+    
+    @staticmethod
+    async def get_all_profesionales(db: AsyncSession) -> List[Usuario]:
+        """Obtiene todos los usuarios profesionales(coaches)."""
+        
+        query=select(Usuario).where(
+            and_(
+                Usuario.rol=="profesional", 
+                Usuario.is_active==True
+            )
+        )
+        result = await db.execute(query)
         return list(result.scalars().all())
 
     @staticmethod

@@ -9,7 +9,7 @@ from backend.services.disponibilidad_service import (
     get_disponibilidad_by_id_service,
     create_disponibilidad_service,
     patch_disponibilidad_service,
-    delete_disponibilidad_service
+    delete_disponibilidad_service,
 )
 from backend.exceptions.usuarios_exceptions import UserNotFoundError
 from backend.exceptions.auth_exceptions import UnauthorizedError
@@ -35,7 +35,7 @@ async def get_disponibilidad_by_id_router(usuario_id:int,disponibilidad_id: int,
         return await get_disponibilidad_by_id_service(db,usuario_id=usuario_id, disponibilidad_id=disponibilidad_id)
     except DisponibilidadNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-
+    
 @router.post("/", response_model=DisponibilidadResponse, status_code=status.HTTP_201_CREATED)
 async def create_disponibilidad_router(usuario_id:int,disponibilidad_data: DisponibilidadCreate, db: AsyncSession = Depends(get_db)):
     try:

@@ -1,6 +1,12 @@
-from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint, Time, Date
+from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint, Time, Date, Enum
 from backend.database import Base
 from sqlalchemy.orm import relationship
+import enum
+
+class EstadoEnum(str, enum.Enum):
+    disponible="disponible"
+    ocupado="ocupado"
+    bloqueado="bloqueado"
 
 class Disponibilidad(Base):
 
@@ -21,5 +27,6 @@ class Disponibilidad(Base):
     fecha = Column(Date, nullable=False, index=True)
     hora_inicio=Column(Time)
     hora_fin=Column(Time)
+    estado=Column(Enum(EstadoEnum), default=EstadoEnum.disponible)
 
     usuario=relationship("Usuario", back_populates="disponibilidad")

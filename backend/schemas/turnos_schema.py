@@ -15,8 +15,7 @@ class EstadoEnum(str, Enum):
 class TurnoBase(BaseModel):
     tipo: TipoEnum = Field(default=TipoEnum.entrenamiento)
     fecha: datetime = Field(..., description="Fecha y hora del turno")
-    # El estado suele empezar en pendiente, pero lo ponemos en Base
-    # por si el Admin quiere editarlo después.
+
     estado: EstadoEnum = Field(default=EstadoEnum.pendiente)
 
 class TurnoCreate(TurnoBase):

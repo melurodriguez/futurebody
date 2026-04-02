@@ -6,7 +6,7 @@ from datetime import date
 class TurnoDAO:
 
     @staticmethod
-    async def get_all(db: AsyncSession, cliente_id: int | None = None) -> list[Turno]:
+    async def get_all(db: AsyncSession, cliente_id: int | None = None, usuario_id:int = None) -> list[Turno]:
         """
         Si cliente_id tiene un valor, filtra los turnos. 
         Si es None (caso profesional), devuelve todos los turnos.
@@ -15,7 +15,8 @@ class TurnoDAO:
 
         if cliente_id is not None:
             query = query.where(Turno.cliente_id == cliente_id)
-
+        if usuario_id is not None:
+            query=query.where(Turno.usuario_id == usuario_id)
         query = query.order_by(Turno.fecha.desc())
 
         result = await db.execute(query)
