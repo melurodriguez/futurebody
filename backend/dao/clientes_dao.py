@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List, Optional
 from backend.models.clientes_model import Cliente
+from sqlalchemy.orm import selectinload
 
 class ClienteDAO:
 
@@ -14,7 +15,16 @@ class ClienteDAO:
     @staticmethod
     async def get_by_id(db: AsyncSession, cliente_id: int) -> Optional[Cliente]:
         """Busca un cliente por su ID primario utilizando el método optimizado .get()"""
-        return await db.get(Cliente, cliente_id)
+        query = (
+            select(Cliente)
+            .options(
+                selectinload(Cliente.turnos), 
+                selectinload(Cliente.objetivos)
+            )
+            .where(Cliente.id == cliente_id)
+        )
+        result = await db.execute(query)
+        return result.scalars().first()
 
     @staticmethod
     async def create(db: AsyncSession, cliente: dict) -> Cliente:

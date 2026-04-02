@@ -15,6 +15,8 @@ from backend.exceptions.usuarios_exceptions import UserNotFoundError
 from backend.schemas.turnos_schema import TurnoCreate, TurnoUpdate
 from backend.services.usuarios_service import get_usuario_by_id_service
 from datetime import datetime
+from backend.dao.disponibilidad_dao import DisponibilidadDAO
+from backend.exceptions.disponibilidad_exceptions import DisponibilidadConflictCreationError
 
 async def validar_cancelacion_antelacion(fecha_turno: datetime, horas_minimas: int = 2):
     ahora = datetime.now()
@@ -40,10 +42,10 @@ async def get_all_turnos_service(db: AsyncSession, usuario_id: int, rol: str):
     try:
         if rol == "profesional":
             # El profesional ve todo, pasamos cliente_id como None
-            return await TurnoDAO.get_all(db=db, cliente_id=None)
+            return await TurnoDAO.get_all(db=db, cliente_id=None, usuario_id=usuario_id)
         
         # El cliente solo ve lo suyo
-        return await TurnoDAO.get_all(db=db, cliente_id=usuario_id)
+        return await TurnoDAO.get_all(db=db, cliente_id=usuario_id, usuario_id=None)
     except Exception as e:
         raise e
 
@@ -70,12 +72,33 @@ async def create_turno_service(db: AsyncSession, cliente_id: int, turno_data: Tu
         fecha_turno=turno_data.fecha
     )
 
+    fecha_dt = turno_data.fecha  # Objeto datetime
+    
+    solo_fecha = fecha_dt.date()      # Extrae: 2026-04-01
+    hora_inicio = fecha_dt.time()     # Extrae: 14:20:00
+    
+    # 2. Cálculo de hora_fin (60 minutos después)
+    # Sumamos al datetime original y luego extraemos la hora
+    hora_fin = (fecha_dt + timedelta(minutes=60)).time()
+
     try:
+
+        bloque = await DisponibilidadDAO.is_disponible(
+            db=db,
+            usuario_id=turno_data.usuario_id,
+            fecha=solo_fecha,
+            inicio=hora_inicio,
+            fin=hora_fin
+        )
+
+        if not bloque :
+            raise TurnoConflictError()
+        
         datos_turno = turno_data.model_dump()
         datos_turno["cliente_id"] = cliente_id 
 
         nuevo_turno = await TurnoDAO.create(db=db, data=datos_turno)
-
+#########TACHAR DIPONIBILIDAD
         await db.commit()
         await db.refresh(nuevo_turno)
         

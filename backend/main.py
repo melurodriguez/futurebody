@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from contextlib import asynccontextmanager
+from backend.core.tasks import scheduler
 # Importación de Rutas (Controllers)
 from backend.controllers.usuarios_controller import router as usuarios_route
 from backend.controllers.turnos_controller import router as turnos_route
@@ -12,6 +13,17 @@ from backend.controllers.comidas_controller import router as comidas_router
 from backend.controllers.disponibilidad_controller import router as disponibilidad_router
 from backend.controllers.mediciones_controller import router as mediciones_router
 from backend.controllers.medidas_corporales_controller import router as medidas_router
+from backend.controllers.config_controller import router as config_router
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Iniciando Scheduler de tareas automáticas...")
+    scheduler.start() 
+    
+    yield 
+    
+    print("Apagando Scheduler...")
+    scheduler.shutdown()
 
 
 app = FastAPI(
@@ -41,6 +53,7 @@ app.include_router(comidas_router)
 app.include_router(disponibilidad_router)
 app.include_router(mediciones_router)
 app.include_router(medidas_router)
+app.include_router(config_router)
 
 
 @app.get("/", tags=["Sistema"])

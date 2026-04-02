@@ -6,6 +6,10 @@ import ClientsScreen from '../screens/coach/ClientsScreen';
 // Importamos los iconos de Lucide
 import { Home, Users, Calendar, BarChart2, User } from 'lucide-react-native';
 import CalendarScreen from '../screens/coach/CalendarScreen';
+import CoachStatsScreen from '../screens/coach/StatsScreen';
+import ProfileScreen from '../screens/coach/ProfileScreen';
+import ClientProfileScreen from '../screens/clients/ClientProfileScreen';
+import ClientInfoScreen from '../screens/coach/ClientInfoScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -19,8 +23,11 @@ const CoachTabs = () => {
         tabBarStyle: {
           backgroundColor: ColorPalette.surface, 
           borderTopColor: ColorPalette.border,
-          height: 70,
-          paddingVertical: 10,
+          height: 90,          
+          paddingBottom: 25,    
+          paddingTop: 10,       
+          borderTopWidth: 1,    
+          elevation: 5
         },
         tabBarActiveTintColor: ColorPalette.primary, 
         tabBarInactiveTintColor: ColorPalette.textSecondary,
@@ -36,7 +43,7 @@ const CoachTabs = () => {
           return (
             <IconComponent 
               color={color} 
-              size={focused ? 28 : 24} // El icono crece un poco al estar activo
+              size={focused ? 28 : 24} 
               strokeWidth={focused ? 2 : 1.5} 
             />
           );
@@ -46,8 +53,8 @@ const CoachTabs = () => {
       <Tab.Screen name='Home' component={HomeScreen} />
       <Tab.Screen name='Clients' component={ClientsScreen} />
       <Tab.Screen name='Calendar' component={CalendarScreen} />
-      <Tab.Screen name='Stats' component={HomeScreen} />
-      <Tab.Screen name='Profile' component={HomeScreen} />
+      <Tab.Screen name='Stats' component={CoachStatsScreen} />
+      <Tab.Screen name='Profile' component={ProfileScreen} />
     </Tab.Navigator>
   );
 }

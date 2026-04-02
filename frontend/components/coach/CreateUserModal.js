@@ -84,64 +84,105 @@ export default function CreateUserModal({ visible, onClose }) {
 }
 
 const styles = StyleSheet.create({
-    overlay: {
+   overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end', // ALINEA AL FONDO
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'flex-end',
     },
     sheetContainer: {
-        backgroundColor: ColorPalette.background, // Fondo ultra dark
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
+        backgroundColor: ColorPalette.background,
+        borderTopLeftRadius: 35,
+        borderTopRightRadius: 35,
         paddingHorizontal: 24,
-        paddingBottom: 40, // Espacio extra para que no pegue abajo
+        paddingBottom: 50,
         paddingTop: 12,
-        // Sombra para que se note la elevación
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
         elevation: 20,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
     },
     dragHandle: {
         width: 40,
         height: 5,
-        backgroundColor: '#374151',
+        backgroundColor: ColorPalette.border,
         borderRadius: 10,
         alignSelf: 'center',
         marginBottom: 20,
     },
     title: {
-        color: 'black',
-        fontSize: 20,
-        fontWeight: '700',
+        color: ColorPalette.textPrimary,
+        fontSize: 22,
+        fontWeight: '800',
         marginBottom: 25,
         textAlign: 'center'
     },
+    label: {
+        color: ColorPalette.textSecondary,
+        fontSize: 14,
+        fontWeight: '700',
+        marginBottom: 8,
+        marginLeft: 4,
+    },
     input: {
         backgroundColor: ColorPalette.surface,
-        color: 'black',
+        color: ColorPalette.textPrimary,
         padding: 16,
-        borderRadius: 12,
-        marginBottom: 16,
+        borderRadius: 16,
+        marginBottom: 20,
         fontSize: 16,
         borderWidth: 1,
         borderColor: ColorPalette.border
     },
-    primaryButton: {
-        backgroundColor: '#3B5BFF', // Tu Azul Eléctrico
-        padding: 18,
+    genderContainer: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 30,
+    },
+    genderBtn: {
+        flex: 1,
+        padding: 12,
         borderRadius: 12,
+        borderWidth: 1,
+        borderColor: ColorPalette.border,
         alignItems: 'center',
-        marginTop: 10,
+        backgroundColor: ColorPalette.surface,
+    },
+    genderBtnActive: {
+        backgroundColor: ColorPalette.secondary, // El lila clarito
+        borderColor: ColorPalette.primary, // El lila fuerte
+    },
+    genderText: {
+        color: ColorPalette.textSecondary,
+        fontWeight: '600',
+    },
+    genderTextActive: {
+        color: ColorPalette.primary,
+        fontWeight: '700',
+    },
+    primaryButton: {
+        backgroundColor: ColorPalette.primary, // Lila #7C3AED
+        padding: 18,
+        borderRadius: 18,
+        alignItems: 'center',
+        shadowColor: ColorPalette.primary,
+        shadowOpacity: 0.3,
+        shadowOffset: { width: 0, height: 5 },
+        shadowRadius: 10,
+        elevation: 5,
     },
     buttonText: {
         color: 'white',
-        fontWeight: 'bold',
+        fontWeight: '800',
         fontSize: 16
     },
     cancelBtn: {
         marginTop: 20,
         alignItems: 'center'
+    },
+    cancelText: {
+        color: ColorPalette.textMuted,
+        fontWeight: '600',
+        fontSize: 15
     }
 });
