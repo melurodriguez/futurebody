@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from backend.dao.configuracion_usuario_dao import ConfiguracionCoachDAO
 from backend.dao.usuarios_dao import UsuarioDAO
-from backend.schemas.config_schema import ConfiguracionUpdate
+from backend.schemas.config_schema import ConfiguracionUpdate, ConfiguracionCreate
 from backend.exceptions.usuarios_exceptions import UserNotFoundError
 from backend.exceptions.config_exceptions import (
     ConfigNotFound, 
@@ -69,8 +69,17 @@ async def generar_disponibilidad_automatica_service(
 
     if fecha_inicio < date.today():
         raise InvalidTimeRangeError("No se puede generar disponibilidad para fechas pasadas.")
+    
+    fecha_fin = fecha_inicio + timedelta(weeks=semanas)
 
-    try:       
+    try:
+        await DisponibilidadDAO.eliminar_bloques_disponibles_rango(
+            db=db,
+            coach_id=usuario_id,
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin
+        )
+
         resultado = await DisponibilidadDAO.generar_bloques_masivos(
             db=db,
             coach_id=usuario_id,
@@ -82,6 +91,17 @@ async def generar_disponibilidad_automatica_service(
         await db.commit()
         return resultado
 
+    except Exception as e:
+        await db.rollback()
+        raise e
+    
+async def create_config_service(db: AsyncSession, config_data: dict):
+    nueva_config = await ConfiguracionCoachDAO.create_config(db, config_data)
+    
+    try:
+        await db.commit()
+        await db.refresh(nueva_config)
+        return nueva_config
     except Exception as e:
         await db.rollback()
         raise e

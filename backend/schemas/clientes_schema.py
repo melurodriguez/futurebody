@@ -4,6 +4,9 @@ from enum import Enum
 from datetime import date, datetime
 from backend.schemas.turnos_schema import TurnoResponse
 from backend.schemas.objetivos_schema import ObjetivoResponse
+from backend.schemas.mediciones_schema import MedicionResponse
+from backend.schemas.medidas_corporales_schema import MedidaCorporalResponse
+from backend.schemas.ciclo_menstrual_schema import CicloMenstrualResponse
 
 class SexoEnum(str, Enum):
     hombre = "hombre"
@@ -33,4 +36,8 @@ class ClienteResponse(ClienteBase):
 class ClienteDetalleResponse(ClienteResponse):
     turnos: List[TurnoResponse] = []
     objetivos: List[ObjetivoResponse] = []
-    pass
+    mediciones: List[MedicionResponse]=[]
+    medidas_corporales: List[MedidaCorporalResponse]= []
+    
+    class Config:
+        from_attributes = True

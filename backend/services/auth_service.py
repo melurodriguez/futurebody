@@ -13,6 +13,7 @@ async def validate_user_credentials( db: AsyncSession, email: str, password: str
     if not user:
         raise UserNotFoundError()
     
+    print(f"DEBUG: Password hash in DB for {email} is: '{user.password}'")
     if not verify_password(password, user.password):
         raise InvalidCredentialsError()
     
@@ -34,9 +35,11 @@ async def register_user_service(db: AsyncSession, usuario: UsuarioCreate):
     if existe:
         raise EmailAlreadyRegisteredError(email=usuario.email)
     
+    hashed = hash_password(usuario.password) 
+    print(f"DEBUG: Generando hash para el nuevo usuario: {hashed}")
 
     user_data = usuario.model_dump(exclude={"password"})
-    user_data["password"] = hash_password(usuario.password)
+    user_data["password"] = hashed
 
     
     try:

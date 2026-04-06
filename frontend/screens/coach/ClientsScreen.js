@@ -7,27 +7,17 @@ import ClientCard from '../../components/coach/ClientCard';
 import { Feather } from '@expo/vector-icons';
 import { useClientStore } from '../../apis/coach/useClientsStore';
 
-const MOCK_CLIENTS = [
-    { id: '1', name: 'Juan Pérez', email: 'juan@fit.com', plan: 'Premium' },
-    { id: '2', name: 'María García', email: 'maria@fit.com', plan: 'Basic' },
-    { id: '3', name: 'Carlos Ruiz', email: 'cruiz@fit.com', plan: 'Premium' },
-    { id: '4', name: 'Ana Sosa', email: 'asosa@fit.com', plan: 'Personalized' },
-    { id: '5', name: 'Roberto Gómez', email: 'robert@fit.com', plan: 'Basic' },
-];
 
 export default function ClientsScreen() {
     const [search, setSearch] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
 
-    // 1. Extraemos lo que necesitamos del store
     const { clients, getClients, error } = useClientStore();
 
-    // 2. Cargamos los datos al montar la pantalla
     useEffect(() => {
         getClients();
     }, []);
 
-    // 3. Filtramos sobre los datos que vienen del store
     const filteredClients = clients.filter(client => 
         client.nombre?.toLowerCase().includes(search.toLowerCase()) // Cambiado a 'nombre'
     );
@@ -38,14 +28,12 @@ export default function ClientsScreen() {
 
     return (
         <View style={styles.container}>
-            {/* Título de sección para consistencia con Stats */}
             <Text style={styles.headerTitle}>Mis Clientes</Text>
 
             <SearchBar 
                 value={search} 
                 onChangeText={(text) => setSearch(text)} 
                 placeholder="Buscar por nombre o email..." 
-                // Asegúrate que tu componente SearchBar use ColorPalette internamente
             />
 
             <FlatList
@@ -62,7 +50,6 @@ export default function ClientsScreen() {
                 }
             />
 
-            {/* FAB con estilo Lila y Sombra Suave */}
             <TouchableOpacity 
                 style={styles.fab} 
                 onPress={() => setModalVisible(true)}
@@ -111,10 +98,10 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 30,
         right: 20,
-        backgroundColor: ColorPalette.primary, // Ahora es el lila #7C3AED
+        backgroundColor: ColorPalette.primary,
         width: 60,
         height: 60,
-        borderRadius: 20, // Forma Squircle/Moderna en lugar de círculo perfecto
+        borderRadius: 20, 
         justifyContent: 'center',
         alignItems: 'center',
         // Sombra estilizada

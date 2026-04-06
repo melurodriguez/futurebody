@@ -9,7 +9,8 @@ from backend.services.objetivos_service import (
     get_objetivo_by_id_service,
     create_objetivo_service,
     patch_objetivo_service,
-    delete_objetivo_service
+    delete_objetivo_service,
+    get_all_tipo_service
 )
 from backend.exceptions.clientes_exceptions import ClienteNotFoundError
 from backend.exceptions.auth_exceptions import UnauthorizedError
@@ -19,12 +20,32 @@ from backend.exceptions.objetivos_exceptions import ObjetivoError, ObjetivoLimit
 
 router = APIRouter(prefix='/objetivos', tags=['Objetivos'])
 
-@router.get("/", response_model=List[ObjetivoResponse])
-async def get_all_objetivos_router(cliente_id:int, usuario_id:int, es_profesional:bool, db: AsyncSession = Depends(get_db)):
+@router.get('/', response_model=List[str])
+async def get_all_tipo_objetivos(db:AsyncSession=Depends(get_db)):
     try:
-        return await get_all_by_cliente_service(db=db, cliente_id=cliente_id, usuario_id=usuario_id, es_profesional=es_profesional)
+        return await get_all_tipo_service(db=db)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.get("/{cliente_id}", response_model=List[ObjetivoResponse])
+async def get_objetivos_by_cliente_id(
+    cliente_id: int, 
+    usuario_id: int, 
+    es_profesional: bool, 
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        return await get_all_by_cliente_service(
+            db=db, 
+            cliente_id=cliente_id, 
+            usuario_id=usuario_id, 
+            es_profesional=es_profesional
+        )
     except UnauthorizedError as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail=str(e)
+        )
 
 
 @router.get("/{objetivo_id}", response_model=ObjetivoResponse)

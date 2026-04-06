@@ -3,11 +3,13 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { Feather } from '@expo/vector-icons';
 import { ColorPalette } from '../../theme';
 import { useAuthStore } from '../../apis/useAuthStore';
+import { Alert } from 'react-native';
+
 export default function ClientProfileScreen() {
-  // 1. Obtener datos reales de Zustand
   const user = useAuthStore((state) => state.user);
 
-  // Datos de medidas (estos vendrían idealmente de otro store de progreso o del objeto user)
+  const logout= useAuthStore((state) => state.logout);
+
   const clientStats = [
     { label: 'Peso', value: '78.5 kg', icon: 'monitor' },
     { label: 'Altura', value: '1.80 m', icon: 'user' }, 
