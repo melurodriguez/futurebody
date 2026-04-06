@@ -7,6 +7,14 @@ from backend.models.objetivos_model import Objetivo
 class ObjetivoDAO:
 
     @staticmethod
+    async def get_all_tipos(db: AsyncSession):
+        query = select(Objetivo.tipo).distinct()
+        
+        result = await db.execute(query)
+        
+        return result.scalars().all()
+
+    @staticmethod
     async def get_all(db: AsyncSession, cliente_id:int) -> List[Objetivo]:
         """Obtiene todos los objetivos."""
         result = await db.execute(

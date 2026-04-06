@@ -7,7 +7,12 @@ from datetime import datetime
 from backend.exceptions.auth_exceptions import UnauthorizedError
 from backend.exceptions.objetivos_exceptions import ObjetivoLimitReachedError,ObjetivoNotFoundError
 
-
+async def get_all_tipo_service(db:AsyncSession):
+    try:
+        return await ObjetivoDAO.get_all_tipos(db=db)
+    except Exception as e:
+        raise e
+        
 async def get_all_by_cliente_service(db: AsyncSession, cliente_id: int, usuario_id: int, es_profesional: bool):
     """
     Un cliente solo puede pedir sus propios objetivos. 

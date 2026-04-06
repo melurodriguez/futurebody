@@ -2,7 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from typing import List, Optional
 from backend.models.disponibilidad_model import Disponibilidad
-from datetime import date, time, timedelta, datetime
+from sqlalchemy import select, delete, and_, update
+from datetime import datetime, timedelta, date, time
 from backend.models.usuarios_model import Usuario
 from backend.models.config_usuario_model import ConfiguracionCoach
 
@@ -60,43 +61,87 @@ class DisponibilidadDAO:
         return result.scalars().first() is None  # True si está libre
     
 
+
+
     @staticmethod
     async def generar_bloques_masivos(
         db: AsyncSession, 
         coach_id: int, 
-        config: ConfiguracionCoach, 
+        config: "ConfiguracionCoach", 
         fecha_inicio: date, 
         semanas: int
     ):
+        # 1. Obtener bloques ocupados antes de limpiar para saber qué reasignar
+        fecha_fin = fecha_inicio + timedelta(days=semanas * 7)
+        stmt_ocupados = select(Disponibilidad).where(
+            and_(
+                Disponibilidad.usuario_id == coach_id,
+                Disponibilidad.fecha >= fecha_inicio,
+                Disponibilidad.fecha <= fecha_fin,
+                Disponibilidad.estado == 'ocupado'
+            )
+        )
+        res = await db.execute(stmt_ocupados)
+        bloques_a_reasignar = res.scalars().all()
+
+
+        await db.execute(
+            delete(Disponibilidad).where(
+                and_(
+                    Disponibilidad.usuario_id == coach_id,
+                    Disponibilidad.fecha >= fecha_inicio,
+                    Disponibilidad.fecha <= fecha_fin
+                )
+            )
+        )
+
+        # 3. Generar la "Malla" ideal según la nueva configuración
         dias_permitidos = [int(d) for d in config.dias_laborales.split(",")]
-        bloques_generados = []
+        malla_nueva = []
         total_dias = max(semanas * 7, 1)
 
         for i in range(total_dias):
             fecha_actual = fecha_inicio + timedelta(days=i)
-            
             if fecha_actual.weekday() in dias_permitidos:
-                
                 hora_puntero = datetime.combine(fecha_actual, config.hora_inicio)
                 hora_fin_jornada = datetime.combine(fecha_actual, config.hora_fin)
                 
                 while hora_puntero + timedelta(minutes=config.duracion_sesion_min) <= hora_fin_jornada:
+                    h_fin = (hora_puntero + timedelta(minutes=config.duracion_sesion_min)).time()
                     
-                    h_fin_bloque = (hora_puntero + timedelta(minutes=config.duracion_sesion_min)).time()
-
-                    nuevo_bloque = Disponibilidad(
-                        usuario_id=coach_id,
-                        fecha=fecha_actual,           
-                        hora_inicio=hora_puntero.time(), 
-                        hora_fin=h_fin_bloque         
-                    )
-                    
-                    bloques_generados.append(nuevo_bloque)
-                    
+                    # Crear objeto base (estado disponible por defecto)
+                    malla_nueva.append({
+                        "usuario_id": coach_id,
+                        "fecha": fecha_actual,
+                        "hora_inicio": hora_puntero.time(),
+                        "hora_fin": h_fin,
+                        "estado": "disponible",
+                        "cliente_id": None # Inicialmente vacío
+                    })
                     hora_puntero += timedelta(minutes=config.duracion_sesion_min)
-        
-        if bloques_generados:
-            db.add_all(bloques_generados)
 
-        
-        return {"message": f"Se generaron {len(bloques_generados)} bloques exitosamente"}
+        for ocupado in bloques_a_reasignar:
+            mejor_match = None
+            min_diff = timedelta(hours=24)
+
+            for nuevo in malla_nueva:
+                if nuevo["fecha"] == ocupado.fecha:
+                    dt_viejo = datetime.combine(date.min, ocupado.hora_inicio)
+                    dt_nuevo = datetime.combine(date.min, nuevo["hora_inicio"])
+                    diff = abs(dt_viejo - dt_nuevo)
+
+                    if diff < min_diff:
+                        min_diff = diff
+                        mejor_match = nuevo
+            
+            if mejor_match:
+                mejor_match["estado"] = "ocupado"
+                mejor_match["cliente_id"] = ocupado.cliente_id
+
+        objetos_finales = [Disponibilidad(**datos) for datos in malla_nueva]
+        if objetos_finales:
+            db.add_all(objetos_finales)
+
+        return {
+            "message": f"Agenda regenerada. {len(bloques_a_reasignar)} turnos reasignados a los horarios más cercanos."
+        }

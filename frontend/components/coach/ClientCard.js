@@ -1,17 +1,36 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Users, Venus, Mars, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { ColorPalette } from "../../theme";
 import ClientInfoScreen from '../../screens/coach/ClientInfoScreen';
+import { useClientStore } from '../../apis/coach/useClientsStore'; 
 
 export default function ClientCard({ item }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const { getClientById } = useClientStore();
+
+    const handlePress = async () => {
+        const nextState = !isOpen;
+        setIsOpen(nextState);
+
+        if (nextState && (!item.objetivos || item.objetivos.length === 0)) {
+        try {
+            setLoading(true);
+            await getClientById(item.id);
+        } catch (error) {
+            console.log("Error al abrir card:", error);
+        } finally {
+            setLoading(false); 
+        }
+    }
+    };
 
     return (
         <View style={styles.clientCard}>
             <TouchableOpacity 
                 style={styles.mainInfo} 
-                onPress={() => setIsOpen(!isOpen)}
+                onPress={handlePress}
                 activeOpacity={0.7}
             >
                 <View style={styles.clientInfo}>
@@ -25,13 +44,14 @@ export default function ClientCard({ item }) {
                 </View>
 
                 <View style={styles.clientAction}>
+                    {loading && <ActivityIndicator size="small" color={ColorPalette.primary} style={{marginRight: 8}} />}
                     {item.sexo === "mujer" ? <Venus color='#f43799' size={20}/> : <Mars color='#2c1eed' size={20}/>}
                     {isOpen ? <ChevronUp color="#494769" size={20} /> : <ChevronDown color="#494769" size={20} />}
                 </View>
             </TouchableOpacity>
 
-            {/* Si está abierto, mostramos la info detallada */}
-            {isOpen && (
+            
+            {isOpen && !loading && (
                 <ClientInfoScreen client={item} />
             )}
         </View>

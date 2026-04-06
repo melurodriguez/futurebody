@@ -4,25 +4,16 @@ export const useDisponibilidadStore = create((set) => ({
   disponibilidad: [],
   error: null,
 
-  getDisponibilidad: async () => {
-    try {
-        console.log("Intentando conectar a:", api.defaults.baseURL + '/disponibilidad/');
-        const response = await api.get('/disponibilidad/',{
-            params:{
-                usuario_id:1
-            }
-        }); 
-        console.log("DATOS RECIBIDOS:", response.data);
-        set({ disponibilidad: response.data, error: null });
-    } catch (err) {
-        console.log("ERROR MESSAGE:", err.message); 
-        if (err.response) {
-        console.log("STATUS DEL SERVER:", err.response.status); // Si es 404, la URL está mal
-        console.log("DATA DEL SERVER:", err.response.data);
-        }
-        set({ disponibilidad: [], error: 'Error de conexión con el servidor' });
-    }
-    },
+  getDisponibilidad: async (usuarioId) => { 
+      try {
+          const response = await api.get('/disponibilidad/', {
+              params: { usuario_id: usuarioId }
+          }); 
+          set({ disponibilidad: response.data, error: null });
+      } catch (err) {
+          set({ disponibilidad: [], error: 'Error al cargar agenda' });
+      }
+  },
 
   createDisponibilidad: async (DisponibilidadData) => {
     try {
@@ -31,5 +22,20 @@ export const useDisponibilidadStore = create((set) => ({
     } catch (err) {
       console.error("Error creando cliente", err);
     }
-  }
+  },
+  updateDisponibilidad: async (id, nuevoEstado) => {
+    try {
+      // nuevoEstado será 'disponible' o 'no_disponible'
+      await api.patch(`/disponibilidad/${id}`, { estado: nuevoEstado });
+      set((state) => ({
+        disponibilidad: state.disponibilidad.map((slot) =>
+          slot.id === id ? { ...slot, estado: nuevoEstado } : slot
+        ),
+      }));
+      return true;
+    } catch (err) {
+      console.error("Error actualizando disponibilidad:", err);
+      return false;
+    }
+  },
 }));

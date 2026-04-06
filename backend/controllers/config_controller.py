@@ -4,11 +4,12 @@ from datetime import date
 from typing import Any
 
 from backend.database import get_db
-from backend.schemas.config_schema import ConfiguracionUpdate, ConfiguracionResponse
+from backend.schemas.config_schema import ConfiguracionUpdate, ConfiguracionResponse, ConfiguracionCreate
 from backend.services.config_service import (
     get_configuracion_by_usuario_id,
     update_configuracion_service,
-    generar_disponibilidad_automatica_service
+    generar_disponibilidad_automatica_service,
+    create_config_service
 )
 from backend.exceptions.usuarios_exceptions import UserNotFoundError
 from backend.exceptions.config_exceptions import (
@@ -65,3 +66,20 @@ async def generar_agenda_automatica_router(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error al generar la agenda: {str(e)}")
+    
+@router.post('/', response_model=ConfiguracionResponse)
+async def create_config(
+    usuario_id: int, 
+    config_data: ConfiguracionCreate, 
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        data = config_data.model_dump()
+        data["usuario_id"] = usuario_id
+        
+        return await create_config_service(db=db, config_data=data)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail=f"Error al crear la configuración: {str(e)}"
+        )

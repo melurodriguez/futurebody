@@ -10,7 +10,10 @@ from backend.models.usuarios_model import Usuario
 from passlib.context import CryptContext
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2", "bcrypt"], 
+    default="argon2", 
+    deprecated="auto"
+)
 
 
 def create_access_token(data: dict) -> str:

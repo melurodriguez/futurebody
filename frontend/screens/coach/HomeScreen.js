@@ -1,76 +1,76 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { ColorPalette } from '../../theme';
 import { useTurnosStore } from '../../apis/useTurnosStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useMemo } from 'react';
 import { useAuthStore } from '../../apis/useAuthStore';
-
-const todayAppointments = [
-  { id: 1, client: 'Juan Pérez', time: '09:00', type: 'Entrenamiento', status: 'pending' },
-  { id: 2, client: 'María López', time: '10:00', type: 'Control físico', status: 'completed' },
-  { id: 3, client: 'Carlos Díaz', time: '11:30', type: 'Masaje', status: 'cancelled' },
-];
 
 const getStatusColor = (status) => {
   switch (status) {
-    case 'completed': return ColorPalette.success;
-    case 'cancelled': return '#EF4444';
-    default: return '#F59E0B'; 
+    case 'completado': return ColorPalette.success;
+    case 'cancelado': return '#EF4444';
+    default: return '#F59E0B'; // pendiente
   }
 };
 
 const HomeScreen = () => {
-
   const user = useAuthStore((state) => state.user);
-  console.log("USUARIO:", user)
-  if (!user) return <Text>No hay sesión iniciada</Text>;
+  const { turnos, getTurnos, error } = useTurnosStore();
 
-  const today = new Date().toLocaleDateString('es-AR', {
+  const todayDisplay = new Date().toLocaleDateString('es-AR', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
   });
 
-  const { turnos, getTurnos, error } = useTurnosStore();
+  useEffect(() => {
+    if (user?.id) {
+      getTurnos(user.id, user.rol);
+    }
+  }, [user?.id]);
 
- 
-  const todayISO = new Date().toISOString().split('T')[0];
-
-  
   const filteredTurnos = useMemo(() => {
-    return turnos.filter(turno => turno.fecha === todayISO);
+    const todayISO = new Date().toISOString().split('T')[0];
+    return turnos.filter(turno => {
+      const fechaTurno = turno.fecha.split('T')[0];
+      return fechaTurno === todayISO;
+    });
   }, [turnos]);
 
-  useEffect(() => {
-    getTurnos();
-  }, []);
+  const ocupacion = useMemo(() => {
+    if (filteredTurnos.length === 0) return "0%";
+    const completados = filteredTurnos.filter(t => t.estado === 'completado').length;
+    return `${Math.round((completados / filteredTurnos.length) * 100)}%`;
+  }, [filteredTurnos]);
+
+  if (!user) return <View style={styles.container}><ActivityIndicator size="large" color={ColorPalette.primary} /></View>;
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
-        {/* Header con estilo unificado */}
+        {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.dateText}>{today}</Text>
-            <Text style={styles.greeting}>Hola, <Text style={styles.boldText}>{user.alias}</Text></Text>
+            <Text style={styles.dateText}>{todayDisplay}</Text>
+            <Text style={styles.greeting}>Hola, <Text style={styles.boldText}>{user.alias || user.nombre}</Text></Text>
           </View>
           <TouchableOpacity style={styles.profileCircle}>
             <View style={styles.profileInner}>
-               <Text style={styles.profileLetter}>{user.alias.charAt([0])}</Text>
+               <Text style={styles.profileLetter}>{(user.alias || user.nombre).charAt(0).toUpperCase()}</Text>
             </View>
           </TouchableOpacity>
         </View>
 
+        {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <View style={styles.statIconContainer}>
                 <Feather name="calendar" size={16} color={ColorPalette.primary} />
             </View>
             <View>
-                <Text style={styles.statNumber}>{todayAppointments.length}</Text>
+                <Text style={styles.statNumber}>{filteredTurnos.length}</Text>
                 <Text style={styles.statLabel}>Turnos hoy</Text>
             </View>
           </View>
@@ -80,12 +80,13 @@ const HomeScreen = () => {
                 <Feather name="trending-up" size={16} color="#FFF" />
             </View>
             <View>
-                <Text style={[styles.statNumber, {color: '#FFF'}]}>85%</Text>
-                <Text style={[styles.statLabel, {color: 'rgba(255,255,255,0.8)'}]}>Ocupación</Text>
+                <Text style={[styles.statNumber, {color: '#FFF'}]}>{ocupacion}</Text>
+                <Text style={[styles.statLabel, {color: 'rgba(255,255,255,0.8)'}]}>Progreso</Text>
             </View>
           </View>
         </View>
 
+        {/* Agenda */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Agenda de hoy</Text>
@@ -98,16 +99,15 @@ const HomeScreen = () => {
             filteredTurnos.map((item) => (
               <TouchableOpacity key={item.id} style={styles.card} activeOpacity={0.8}>
                 <View style={styles.timeContainer}>
-                  {/* Asumiendo que item.hora es "09:00:00" */}
-                  <Text style={styles.timeText}>{item.hora?.substring(0, 5)}</Text>
+                  <Text style={styles.timeText}>
+                    {item.fecha.includes('T') ? item.fecha.split('T')[1].substring(0, 5) : '00:00'}
+                  </Text>
                   <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(item.estado) }]} />
                 </View>
                 
                 <View style={styles.cardContent}>
-                  {/* Aquí hay un detalle: el back manda cliente_id. 
-                      Lo ideal es que el back haga un JOIN o que tú busques el nombre */}
                   <Text style={styles.clientName}>Cliente #{item.cliente_id}</Text>
-                  <Text style={styles.sessionType}>{item.tipo_sesion || 'Entrenamiento'}</Text>
+                  <Text style={styles.sessionType}>{item.tipo.toUpperCase()}</Text>
                 </View>
                 
                 <View style={styles.chevronContainer}>
@@ -117,16 +117,15 @@ const HomeScreen = () => {
             ))
           ) : (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No hay turnos para hoy.</Text>
+              <Feather name="clock" size={40} color={ColorPalette.border} />
+              <Text style={styles.emptyText}>No tienes compromisos para hoy.</Text>
             </View>
           )}
         </View>
-
       </ScrollView>
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
@@ -284,6 +283,9 @@ const styles = StyleSheet.create({
     backgroundColor: ColorPalette.background,
     padding: 6,
     borderRadius: 10
+  },
+  emptyText:{
+    color:ColorPalette.textPrimary
   }
 });
 

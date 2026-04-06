@@ -14,12 +14,14 @@ class ClienteDAO:
 
     @staticmethod
     async def get_by_id(db: AsyncSession, cliente_id: int) -> Optional[Cliente]:
-        """Busca un cliente por su ID primario utilizando el método optimizado .get()"""
+        """Busca un cliente por su ID primario utilizando el método optimizado """
         query = (
             select(Cliente)
             .options(
                 selectinload(Cliente.turnos), 
-                selectinload(Cliente.objetivos)
+                selectinload(Cliente.objetivos),
+                selectinload(Cliente.mediciones),
+                selectinload(Cliente.medidas_corporales)
             )
             .where(Cliente.id == cliente_id)
         )

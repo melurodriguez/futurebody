@@ -32,7 +32,6 @@ app = FastAPI(
     description="API para gestión de entrenamientos, turnos y objetivos de salud."
 )
 
-# Configuración de CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # En producción, reemplaza "*" por tu dominio del frontend
@@ -41,8 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Registro de Routers
-# Es recomendable usar 'prefix' y 'tags' aquí si no los definiste dentro del router
+
 app.include_router(usuarios_route)
 app.include_router(turnos_route)
 app.include_router(objetivos_route)

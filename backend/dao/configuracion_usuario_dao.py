@@ -2,6 +2,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, insert
 from backend.models.config_usuario_model import ConfiguracionCoach
 from typing import Optional
+from datetime import date
+from backend.models.disponibilidad_model import Disponibilidad
+from sqlalchemy import delete, and_
 
 class ConfiguracionCoachDAO:
     
@@ -42,3 +45,32 @@ class ConfiguracionCoachDAO:
         query = select(ConfiguracionCoach)
         result = await db.execute(query)
         return result.scalars().all()
+    
+    @staticmethod
+    async def create_config(db:AsyncSession, config_data:dict):
+        nueva_config= ConfiguracionCoach(**config_data)
+        db.add(nueva_config)
+        return nueva_config
+    
+    @staticmethod
+    async def eliminar_bloques_disponibles_rango(
+        db: AsyncSession, 
+        coach_id: int, 
+        fecha_inicio: date, 
+        fecha_fin: date
+    ):
+        """
+        Elimina bloques que no han sido reservados en un rango de fechas.
+        """
+        stmt = (
+            delete(Disponibilidad)
+            .where(
+                and_(
+                    Disponibilidad.usuario_id == coach_id,
+                    Disponibilidad.fecha >= fecha_inicio,
+                    Disponibilidad.fecha <= fecha_fin,
+                    Disponibilidad.estado == "disponible" # CRÍTICO: No borrar 'ocupado'
+                )
+            )
+        )
+        await db.execute(stmt)
