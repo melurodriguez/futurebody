@@ -23,3 +23,8 @@ class InvalidBirthDateError(ClienteError):
     """Se lanza cuando la fecha de nacimiento es inválida."""
     def __init__(self, message="La fecha de nacimiento no es válida."):
         super().__init__(message)
+
+class InvalidTimeRangeError(ClienteError):
+    """Se lanza cuando el rango de fechas es inválido."""
+    def __init__(self, message="El rango de fechas no es válido"):
+        super().__init__(message=message)

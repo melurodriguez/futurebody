@@ -1,55 +1,98 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import StatCard from '../../components/coach/StatCard';
-import { ColorPalette } from '../../theme'; // Importamos tu nueva paleta
+import { ColorPalette } from '../../theme'; 
+import { useClientStore } from '../../apis/coach/useClientsStore';
 
 const CoachStatsScreen = () => {
-  const dummyData = [
-    { id: 1, title: 'Clientes Activos', value: '42', trend: '+5 este mes', icon: 'users' },
-    { id: 2, title: 'Adherencia Media', value: '87%', trend: '+2.4%', icon: 'activity' },
-    { id: 3, title: 'Sesiones Hoy', value: '12', trend: '80% completado', icon: 'calendar' },
-    { id: 4, title: 'Retención', value: '94%', trend: 'Excelente', icon: 'refresh-cw' },
-  ];
+  const { stats, getStats, loading } = useClientStore();
+
+  useEffect(() => {
+    getStats(); // Llamada directa al store simplificada
+  }, []);
+
+  // Mapeo dinámico de las estadísticas del backend a las Cards
+  const renderStats = () => {
+    if (!stats) return null;
+
+    return [
+      { 
+        id: 1, 
+        title: 'Clientes Activos', 
+        value: String(stats.usuarios?.activos || 0), 
+        trend: `+${stats.usuarios?.nuevos_mes || 0} nuevos`, 
+        icon: 'users' 
+      },
+      { 
+        id: 2, 
+        title: 'Asistencia', 
+        value: `${stats.engagement?.tasa_asistencia || 0}%`, 
+        trend: 'Últimos 30 días', 
+        icon: 'activity' 
+      },
+      { 
+        id: 3, 
+        title: 'Sesiones Hoy', 
+        value: String(stats.hoy?.turnos_totales || 0), 
+        trend: `${stats.hoy?.progreso_porcentaje || 0}% completado`, 
+        icon: 'calendar' 
+      },
+      { 
+        id: 4, 
+        title: 'Prom. Sesiones', 
+        value: String(stats.engagement?.sesiones_promedio_por_cliente || 0), 
+        trend: 'Por cliente/mes', 
+        icon: 'refresh-cw' 
+      },
+    ];
+  };
+
+  const dynamicData = renderStats();
 
   return (
     <ScrollView 
       style={styles.container} 
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 40 }} // Espacio para el Bottom Tab alto
+      contentContainerStyle={{ paddingBottom: 40 }}
     >
       <Text style={styles.headerTitle}>Estadísticas</Text>
       
-      <View style={styles.statsGrid}>
-        {dummyData.map((item) => (
-          <StatCard key={item.id} {...item} />
-        ))}
-      </View>
+      {loading ? (
+        <View style={{ height: 200, justifyContent: 'center' }}>
+          <ActivityIndicator color={ColorPalette.primary} size="large" />
+        </View>
+      ) : (
+        <View style={styles.statsGrid}>
+          {dynamicData && dynamicData.map((item) => (
+            <StatCard key={item.id} {...item} />
+          ))}
+        </View>
+      )}
 
+      {/* Sección del Mapa de Calor (Engagement) */}
       <View style={styles.chartSection}>
-        <Text style={styles.sectionTitle}>Progreso de Alumnos</Text>
+        <Text style={styles.sectionTitle}>Horas Pico de Demanda</Text>
         <View style={styles.chartPlaceholder}>
-          {/* SIMULACIÓN DE GRADIENTE NATIVO OSCURO */}
-          <View style={styles.fakeGradientContainer}>
-            <View style={[styles.gradientLayer, { opacity: 0.05, bottom: 0, height: '100%' }]} />
-            <View style={[styles.gradientLayer, { opacity: 0.1, bottom: 0, height: '60%' }]} />
-            <View style={[styles.gradientLayer, { opacity: 0.2, bottom: 0, height: '30%' }]} />
-          </View>
-          
-          <Text style={styles.placeholderText}>Visualización de Carga de Trabajo (Semanal)</Text>
+           {/* Aquí puedes mapear stats.engagement.horas_pico en un futuro */}
+          <Text style={styles.placeholderText}>
+            {stats?.engagement?.horas_pico 
+              ? "Datos de horas pico listos para graficar" 
+              : "Sin datos de actividad reciente"}
+          </Text>
         </View>
       </View>
 
       <View style={styles.recentActivity}>
-        <Text style={styles.sectionTitle}>Logros de la Comunidad</Text>
-        {['Juan Perez alcanzó 100kg en Bench Press', 'Maria G. completó su racha de 15 días'].map((log, i) => (
-          <View key={i} style={styles.logItem}>
-            <View style={styles.iconCircle}>
-              <Feather name="award" size={16} color={ColorPalette.accent} />
-            </View>
-            <Text style={styles.logText}>{log}</Text>
+        <Text style={styles.sectionTitle}>Inactividad Crítica</Text>
+        <View style={styles.logItem}>
+          <View style={[styles.iconCircle, { backgroundColor: '#EF444420' }]}>
+            <Feather name="alert-circle" size={16} color="#EF4444" />
           </View>
-        ))}
+          <Text style={styles.logText}>
+            {stats?.usuarios?.inactivos || 0} cliente(s) inactivo(s) detectados.
+          </Text>
+        </View>
       </View>
     </ScrollView>
   );

@@ -3,6 +3,7 @@ import api from '../../context/axiosInstance';
 
 export const useClientStore = create((set) => ({
   clients: [],
+  stats:null,
   error: null,
   loading: false,
 
@@ -66,6 +67,19 @@ export const useClientStore = create((set) => ({
       }));
     } catch (err) {
       console.error(`Error al eliminar cliente: ${cliente_id}`, err);
+    }
+  },
+
+  //STATS
+  getStats: async () => {
+    set({ loading: true }); 
+    try {
+      const response = await api.get("/clientes/stats");
+      set({ stats: response.data, error: null });
+    } catch (err) {
+      set({ error: 'Error de conexión con el servidor', stats: null });
+    } finally {
+      set({ loading: false });
     }
   }
 }));
