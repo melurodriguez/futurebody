@@ -8,7 +8,6 @@ from backend.schemas.config_schema import ConfiguracionUpdate, ConfiguracionResp
 from backend.services.config_service import (
     get_configuracion_by_usuario_id,
     update_configuracion_service,
-    generar_disponibilidad_automatica_service,
     create_config_service
 )
 from backend.exceptions.usuarios_exceptions import UserNotFoundError
@@ -45,27 +44,6 @@ async def update_configuracion_router(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error interno al actualizar configuración.")
 
-@router.post("/{usuario_id}/generar-agenda", status_code=status.HTTP_201_CREATED)
-async def generar_agenda_automatica_router(
-    usuario_id: int, 
-    fecha_inicio: date, 
-    semanas: int = 2, 
-    db: AsyncSession = Depends(get_db)
-):
-    """Dispara la creación masiva de bloques de disponibilidad en la base de datos."""
-    try:
-        return await generar_disponibilidad_automatica_service(
-            db=db, 
-            usuario_id=usuario_id, 
-            fecha_inicio=fecha_inicio, 
-            semanas=semanas
-        )
-    except ConfigNotFound as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except InvalidTimeRangeError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error al generar la agenda: {str(e)}")
     
 @router.post('/', response_model=ConfiguracionResponse)
 async def create_config(
@@ -73,13 +51,10 @@ async def create_config(
     config_data: ConfiguracionCreate, 
     db: AsyncSession = Depends(get_db)
 ):
-    try:
-        data = config_data.model_dump()
-        data["usuario_id"] = usuario_id
-        
-        return await create_config_service(db=db, config_data=data)
-    except Exception as e:
+    try:            
+        return await create_config_service(db=db, config_data=config_data, usuario_id=usuario_id)
+    except InvalidTimeRangeError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
-            detail=f"Error al crear la configuración: {str(e)}"
+            detail=str(e)
         )

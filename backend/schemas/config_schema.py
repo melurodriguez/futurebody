@@ -5,7 +5,7 @@ from datetime import time
 class ConfiguracionBase(BaseModel):
     hora_inicio: time = Field(default="09:00:00")
     hora_fin: time = Field(default="18:00:00")
-    duracion_sesion_min: int = Field(default=60, gt=0, le=240) # Máximo 4 horas por sesión
+    duracion_sesion_min: int = Field(default=60, gt=0, le=240) 
     dias_laborales: str = Field(
         default="0,1,2,3,4", 
         description="Días de la semana separados por coma (0=Lunes, 6=Domingo)"

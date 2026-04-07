@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
-
+from datetime import date
 from backend.database import get_db
 from backend.schemas.disponibilidad_schema import DisponibilidadCreate, DisponibilidadUpdate, DisponibilidadResponse
 from backend.services.disponibilidad_service import (
@@ -11,6 +11,8 @@ from backend.services.disponibilidad_service import (
     patch_disponibilidad_service,
     delete_disponibilidad_service,
 )
+from backend.services.disponibilidad_service import generar_disponibilidad_automatica_service
+from backend.exceptions.config_exceptions import ConfigNotFound
 from backend.exceptions.usuarios_exceptions import UserNotFoundError
 from backend.exceptions.auth_exceptions import UnauthorizedError
 from backend.exceptions.disponibilidad_exceptions import (
@@ -73,3 +75,25 @@ async def delete_disponibilidad_router(usuario_id:int, disponibilidad_id: int, d
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except UnauthorizedError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+    
+@router.post("/{usuario_id}/generar-agenda", status_code=status.HTTP_201_CREATED)
+async def generar_agenda_automatica_router(
+    usuario_id: int, 
+    fecha_inicio: date, 
+    semanas: int = 2, 
+    db: AsyncSession = Depends(get_db)
+):
+    """Dispara la creación masiva de bloques de disponibilidad en la base de datos."""
+    try:
+        return await generar_disponibilidad_automatica_service(
+            db=db, 
+            usuario_id=usuario_id, 
+            fecha_inicio=fecha_inicio, 
+            semanas=semanas
+        )
+    except ConfigNotFound as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except InvalidTimeRangeError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error al generar la agenda: {str(e)}")

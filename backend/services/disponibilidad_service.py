@@ -6,7 +6,7 @@ from backend.exceptions.disponibilidad_exceptions import DisponibilidadError, Di
 from backend.dao.usuarios_dao import UsuarioDAO
 from backend.exceptions.auth_exceptions import UnauthorizedError
 from backend.exceptions.usuarios_exceptions import UserNotFoundError
-from datetime import date
+from datetime import date, timedelta
 from backend.dao.configuracion_usuario_dao import ConfiguracionCoachDAO
 from backend.exceptions.config_exceptions import ConfigError, ConfigNotFound
 import logging
@@ -119,3 +119,37 @@ async def delete_disponibilidad_service(db:AsyncSession,  usuario_id: int, dispo
         await db.rollback()
         raise e
     
+async def generar_disponibilidad_automatica_service(
+    db: AsyncSession, 
+    usuario_id: int, 
+    fecha_inicio: date, 
+    semanas: int = 2
+):
+    """
+    Orquesta la generación masiva de bloques de tiempo.
+    """
+    
+    config = await ConfiguracionCoachDAO.get_by_usuario_id(db, usuario_id)
+    if not config:
+        raise ConfigNotFound(usuario_id=usuario_id)
+
+    if fecha_inicio < date.today():
+        raise InvalidTimeRangeError("No se puede generar disponibilidad para fechas pasadas.")
+    
+
+    try:
+
+        resultado = await DisponibilidadDAO.generar_bloques_masivos(
+            db=db,
+            coach_id=usuario_id,
+            config=config,
+            fecha_inicio=fecha_inicio,
+            semanas=semanas
+        )
+        
+        await db.commit()
+        return resultado
+
+    except Exception as e:
+        await db.rollback()
+        raise e

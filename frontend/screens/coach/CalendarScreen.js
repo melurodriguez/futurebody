@@ -8,6 +8,7 @@ import { Clock, Settings, Calendar as CalendarIcon, X } from 'lucide-react-nativ
 import { ColorPalette } from '../../theme';
 import { useDisponibilidadStore } from '../../apis/coach/useDisponibilidadStore';
 import { useAuthStore } from '../../apis/useAuthStore';
+import {useConfigStore} from '../../apis/coach/useConfigStore'
 
 // Configuración de idioma para el calendario
 LocaleConfig.locales['es'] = {
@@ -19,7 +20,7 @@ LocaleConfig.locales['es'] = {
 LocaleConfig.defaultLocale = 'es';
 
 // --- COMPONENTE INTERNO: MODAL DE CONFIGURACIÓN ---
-const ConfiguracionModal = ({ visible, onClose, onSave, loading }) => {
+const ConfiguracionModal = ({ visible, onClose, onSave, loading, config }) => {
   const [form, setForm] = useState({
     hora_inicio: "09:00:00",
     hora_fin: "18:00:00",
@@ -33,6 +34,17 @@ const ConfiguracionModal = ({ visible, onClose, onSave, loading }) => {
     }
     onSave(form);
   };
+
+  useEffect(() => {
+  if (config) {
+    setForm({
+      hora_inicio: config.hora_inicio,
+      hora_fin: config.hora_fin,
+      duracion_sesion_min: String(config.duracion_sesion_min),
+      dias_laborales: config.dias_laborales
+    });
+  }
+}, [config, visible]);
 
   return (
     <Modal visible={visible} animationType="slide" transparent={true}>
@@ -110,16 +122,32 @@ export default function CalendarScreen() {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [configLoading, setConfigLoading] = useState(false);
+  const { 
+    config, 
+    getConfigByUser, 
+    createConfig, 
+    updateConfig, 
 
-  const { disponibilidad, getDisponibilidad, updateDisponibilidad } = useDisponibilidadStore();
+  } = useConfigStore();
+
+  const { disponibilidad, getDisponibilidad, updateDisponibilidad,     createMasiveSlotLoad  } = useDisponibilidadStore();
   const user = useAuthStore(state => state.user);
 
   useEffect(() => {
     if (user?.id) {
       const cargarDatos = async () => {
         setLoading(true);
-        await getDisponibilidad(user.id);
-        setLoading(false);
+        try {
+
+          await Promise.allSettled([
+            getDisponibilidad(user.id),
+            getConfigByUser(user.id)
+          ]);
+        } catch (error) {
+          console.error("Error cargando datos iniciales:", error);
+        } finally {
+          setLoading(false);
+        }
       };
       cargarDatos();
     }
@@ -130,19 +158,24 @@ export default function CalendarScreen() {
     setConfigLoading(true);
     
     try {
+      console.log("Enviando configuración...", formData);
         if (config) {
             await updateConfig(user.id, formData);
         } else {
             await createConfig(user.id, formData);
         }
 
-        // 2. Disparar la generación masiva de la agenda
-        // await generarAgenda(user.id, selectedDate); 
+        console.log("Generando agenda masiva...");
+        await createMasiveSlotLoad(user.id, {
+          fecha_inicio: selectedDate, 
+          semanas: 2
+        });
 
         Alert.alert("Éxito", "Configuración guardada y agenda generada.");
         setModalVisible(false);
         await getDisponibilidad(user.id); 
     } catch (error) {
+      console.error("DETALLE DEL ERROR:", error.response?.data || error.message);
         Alert.alert("Error", "No se pudo procesar la solicitud.");
     } finally {
         setConfigLoading(false);
@@ -159,9 +192,23 @@ export default function CalendarScreen() {
   }, [disponibilidad, selectedDate]);
 
   const handleToggle = async (item) => {
-    const nuevoEstado = item.estado === 'disponible' ? 'no_disponible' : 'disponible';
-    await updateDisponibilidad(item.id, nuevoEstado);
-  };
+    if (!user?.id) return;
+
+    const nuevoEstado = item.estado === 'disponible' ? 'bloqueado' : 'disponible';
+    
+    const disponibilidadData = {
+        fecha: item.fecha.includes('T') ? item.fecha.split('T')[0] : item.fecha,
+        hora_inicio: item.hora_inicio,
+        hora_fin: item.hora_fin,
+        estado: nuevoEstado
+    };
+
+    const success = await updateDisponibilidad(user.id, item.id, disponibilidadData);
+    
+    if (!success) {
+      Alert.alert("Error", "No se pudo actualizar el estado del bloque.");
+    }
+};
 
   const formattedDate = new Date(selectedDate + 'T00:00:00').toLocaleDateString('es-ES', {
     day: 'numeric',
@@ -169,37 +216,56 @@ export default function CalendarScreen() {
   });
 
   const renderSlot = ({ item }) => {
-    const isBooked = item.estado === 'ocupado';
-    const isVisible = item.estado === 'disponible';
+    const isOcupado = item.estado === 'ocupado';
+    const isBloqueado = item.estado === 'bloqueado';
+    const isDisponible = item.estado === 'disponible';
+
+    const getTimeBadgeStyle = () => {
+      if (isOcupado) return { backgroundColor: ColorPalette.primary }; 
+      if (isBloqueado) return { backgroundColor: '#94A3B8' }; 
+      return { backgroundColor: '#22C55E20' }; 
+    };
 
     return (
-      <View style={[styles.slotCard, isBooked && styles.bookedCard]}>
+      <View style={[
+        styles.slotCard, 
+        isOcupado && styles.ocupadoCard,
+        isBloqueado && styles.bloqueadoCard
+      ]}>
         <View style={styles.slotInfo}>
-          <View style={[styles.timeBadge, isBooked && { backgroundColor: ColorPalette.primary }]}>
-             <Clock color={isBooked ? '#FFF' : ColorPalette.primary} size={14} />
+          <View style={[styles.timeBadge, getTimeBadgeStyle()]}>
+             <Clock color={isDisponible ? ColorPalette.success : '#FFF'} size={14} />
           </View>
           <View style={{ marginLeft: 12 }}>
-            <Text style={[styles.slotTime, isBooked && styles.bookedTimeText]}>
+            <Text style={[
+              styles.slotTime, 
+              isBloqueado && { color: ColorPalette.textMuted }
+            ]}>
               {item.hora_inicio.substring(0, 5)} hs
             </Text>
-            {item.auto_generado && <Text style={styles.autoSubtext}>Generado por horario fijo</Text>}
+            {item.auto_generado && <Text style={styles.autoSubtext}>Horario fijo</Text>}
           </View>
         </View>
         
-        {isBooked ? (
+        {isOcupado ? (
           <View style={styles.clientBadge}>
-            <Text style={styles.bookedText}>{item.cliente_nombre || 'Reservado'}</Text>
+            <Text style={styles.bookedText}>{item.cliente_nombre || 'Turno Tomado'}</Text>
           </View>
         ) : (
           <View style={styles.actions}>
-            <Text style={[styles.statusLabel, isVisible && { color: ColorPalette.primary }]}>
-              {isVisible ? 'Visible' : 'Oculto'}
+            <Text style={[
+              styles.statusLabel, 
+              isDisponible && { color: '#22C55E' },
+              isBloqueado && { color: ColorPalette.textMuted }
+            ]}>
+              {isDisponible ? 'Disponible' : 'Bloqueado'}
             </Text>
             <Switch
-              value={isVisible}
+              value={isDisponible}
               onValueChange={() => handleToggle(item)}
-              trackColor={{ false: ColorPalette.border, true: ColorPalette.primary + '50' }}
-              thumbColor={isVisible ? ColorPalette.primary : '#94A3B8'}
+              trackColor={{ false: ColorPalette.border, true: '#22C55E50' }}
+              thumbColor={isDisponible ? '#22C55E' : '#94A3B8'}
+              disabled={isOcupado} 
             />
           </View>
         )}
@@ -227,21 +293,31 @@ export default function CalendarScreen() {
         onClose={() => setModalVisible(false)}
         onSave={handleSaveConfig}
         loading={configLoading}
+        config={config}
       />
 
       <View style={styles.calendarWrapper}>
-        <CalendarProvider date={selectedDate} onDateChanged={setSelectedDate}>
+        <CalendarProvider date={selectedDate} onDateChanged={setSelectedDate} theme={{ todayButtonTextColor: ColorPalette.primary }}>
           <WeekCalendar
             firstDay={1}
             markedDates={{ [selectedDate]: { selected: true } }}
             theme={{
               backgroundColor: ColorPalette.background,
               calendarBackground: ColorPalette.background,
-              dayTextColor: ColorPalette.textSecondary,
+              dayTextColor: ColorPalette.textPrimary,
+              textDisabledColor: ColorPalette.textMuted + '40', 
+              monthTextColor: ColorPalette.textPrimary,
+              textMonthFontSize: 16,
+              textMonthFontWeight: '800',
+              textSectionTitleColor: ColorPalette.textSecondary,
+              textDayHeaderFontSize: 12,
+              textDayHeaderFontWeight: '600',
               selectedDayBackgroundColor: ColorPalette.primary,
               selectedDayTextColor: '#FFFFFF',
               todayTextColor: ColorPalette.primary,
-              textDayFontWeight: '700',
+              todayButtonFontWeight: '800',
+              arrowColor: ColorPalette.primary,
+              textDayFontWeight: '600',
             }}
           />
         </CalendarProvider>
@@ -287,7 +363,12 @@ const styles = StyleSheet.create({
   headerTitle: { color: ColorPalette.textPrimary, fontSize: 28, fontWeight: '800', letterSpacing: -1 },
   headerSub: { color: ColorPalette.textSecondary, fontSize: 13, fontWeight: '500' },
   iconButton: { backgroundColor: ColorPalette.surface, padding: 10, borderRadius: 15, borderWidth: 1, borderColor: ColorPalette.border },
-  calendarWrapper: { height: 110 },
+  calendarWrapper: { 
+    height: 110, 
+    backgroundColor: ColorPalette.background, 
+    borderBottomWidth: 1,
+    borderBottomColor: ColorPalette.border,
+  },
   slotsHeader: { paddingHorizontal: 24, marginTop: 20, marginBottom: 15 },
   dateIndicator: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   slotsTitle: { color: ColorPalette.textSecondary, fontSize: 13, fontWeight: '700', textTransform: 'capitalize' },
@@ -303,13 +384,38 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: ColorPalette.border,
   },
-  bookedCard: { borderColor: ColorPalette.primary, backgroundColor: ColorPalette.primary + '08' },
+  ocupadoCard: { 
+    borderColor: ColorPalette.primary, 
+    backgroundColor: ColorPalette.primary + '08', 
+    borderWidth: 2 
+  },
+  bloqueadoCard: { 
+    borderColor: ColorPalette.border, 
+    opacity: 0.6,
+    backgroundColor: '#F1F5F9' 
+  },
   slotInfo: { flexDirection: 'row', alignItems: 'center' },
-  timeBadge: { width: 32, height: 32, borderRadius: 10, backgroundColor: ColorPalette.secondary, justifyContent: 'center', alignItems: 'center' },
+ timeBadge: { 
+    width: 32, 
+    height: 32, 
+    borderRadius: 10, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
   slotTime: { color: ColorPalette.textPrimary, fontSize: 16, fontWeight: '800' },
   autoSubtext: { fontSize: 10, color: ColorPalette.textMuted, fontWeight: '500' },
-  clientBadge: { backgroundColor: ColorPalette.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-  bookedText: { color: '#FFF', fontWeight: '700', fontSize: 12 },
+  clientBadge: { 
+    backgroundColor: ColorPalette.primary, 
+    paddingHorizontal: 12, 
+    paddingVertical: 6, 
+    borderRadius: 10 
+  },
+  bookedText: { 
+    color: '#FFF', 
+    fontWeight: '800', 
+    fontSize: 11,
+    textTransform: 'uppercase'
+  },
   statusLabel: { color: ColorPalette.textMuted, fontSize: 11, marginRight: 8, fontWeight: '700', textTransform: 'uppercase' },
   actions: { flexDirection: 'row', alignItems: 'center' },
   emptyContainer: { alignItems: 'center', marginTop: 40 },
@@ -359,10 +465,12 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: ColorPalette.surface,
     borderWidth: 1,
-    borderColor: ColorPalette.border,
+    borderColor: ColorPalette.borderStrong, 
     borderRadius: 14,
     padding: 14,
     color: ColorPalette.textPrimary,
+    fontSize: 15,
+    fontWeight: '500',
   },
   saveButton: {
     backgroundColor: ColorPalette.primary,

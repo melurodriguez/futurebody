@@ -67,18 +67,18 @@ class DisponibilidadDAO:
     async def generar_bloques_masivos(
         db: AsyncSession, 
         coach_id: int, 
-        config: "ConfiguracionCoach", 
+        config: ConfiguracionCoach, 
         fecha_inicio: date, 
         semanas: int
     ):
-        # 1. Obtener bloques ocupados antes de limpiar para saber qué reasignar
         fecha_fin = fecha_inicio + timedelta(days=semanas * 7)
         stmt_ocupados = select(Disponibilidad).where(
             and_(
                 Disponibilidad.usuario_id == coach_id,
                 Disponibilidad.fecha >= fecha_inicio,
                 Disponibilidad.fecha <= fecha_fin,
-                Disponibilidad.estado == 'ocupado'
+                Disponibilidad.estado == 'ocupado',
+                Disponibilidad.estado == "bloqueado"
             )
         )
         res = await db.execute(stmt_ocupados)
@@ -95,7 +95,6 @@ class DisponibilidadDAO:
             )
         )
 
-        # 3. Generar la "Malla" ideal según la nueva configuración
         dias_permitidos = [int(d) for d in config.dias_laborales.split(",")]
         malla_nueva = []
         total_dias = max(semanas * 7, 1)
@@ -109,14 +108,12 @@ class DisponibilidadDAO:
                 while hora_puntero + timedelta(minutes=config.duracion_sesion_min) <= hora_fin_jornada:
                     h_fin = (hora_puntero + timedelta(minutes=config.duracion_sesion_min)).time()
                     
-                    # Crear objeto base (estado disponible por defecto)
                     malla_nueva.append({
                         "usuario_id": coach_id,
                         "fecha": fecha_actual,
                         "hora_inicio": hora_puntero.time(),
                         "hora_fin": h_fin,
                         "estado": "disponible",
-                        "cliente_id": None # Inicialmente vacío
                     })
                     hora_puntero += timedelta(minutes=config.duracion_sesion_min)
 
@@ -136,7 +133,7 @@ class DisponibilidadDAO:
             
             if mejor_match:
                 mejor_match["estado"] = "ocupado"
-                mejor_match["cliente_id"] = ocupado.cliente_id
+                mejor_match["usuario_id"] = ocupado.usuario_id
 
         objetos_finales = [Disponibilidad(**datos) for datos in malla_nueva]
         if objetos_finales:
@@ -145,3 +142,26 @@ class DisponibilidadDAO:
         return {
             "message": f"Agenda regenerada. {len(bloques_a_reasignar)} turnos reasignados a los horarios más cercanos."
         }
+    
+    @staticmethod
+    async def eliminar_bloques_disponibles_rango(
+        db: AsyncSession, 
+        coach_id: int, 
+        fecha_inicio: date, 
+        fecha_fin: date
+    ):
+        """
+        Elimina bloques que no han sido reservados en un rango de fechas.
+        """
+        stmt = (
+            delete(Disponibilidad)
+            .where(
+                and_(
+                    Disponibilidad.usuario_id == coach_id,
+                    Disponibilidad.fecha >= fecha_inicio,
+                    Disponibilidad.fecha <= fecha_fin,
+                    Disponibilidad.estado == "disponible" 
+                )
+            )
+        )
+        await db.execute(stmt)
