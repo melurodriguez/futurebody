@@ -26,27 +26,31 @@ export default function App() {
           }}
         >
          {token ? (
-              user?.rol === 'profesional' ? (
-                  <Stack.Screen name="Main" component={CoachTabs} />
-              ) : (
-                  <Stack.Screen name="Main" component={ClientTabs} />
-              )
-          ) : (
-              <Stack.Screen name="Login" component={LoginForm} />
-          )}
+            <>
+              {/* Las Tabs principales */}
+              <Stack.Screen 
+                name="Main" 
+                component={user?.rol === 'profesional' ? CoachTabs : ClientTabs} 
+              />
+              
+              {/* La pantalla de detalle (Fuera de las Tabs) */}
+              <Stack.Screen 
+                name='InfoClient' 
+                component={ClientInfoScreen} 
+                options={{
+                  headerShown: true,
+                  headerTitle: 'Detalle del Cliente',
+                  headerTintColor: ColorPalette.primary,
+                  headerStyle: { backgroundColor: ColorPalette.surface },
+                  headerShadowVisible: false,
+                  headerBackTitle: 'Volver', // Solo iOS
+                }}
+              />
+            </>
+        ) : (
+            <Stack.Screen name="Login" component={LoginForm} />
+        )}
 
-          {/* Pantallas de Detalle (Fuera de los Tabs para ocultar la barra inferior) */}
-          <Stack.Screen 
-            name='InfoClient' 
-            component={ClientInfoScreen} 
-            options={{
-              headerShown: true,
-              headerTitle: 'Detalle del Cliente',
-              headerTintColor: ColorPalette.primary,
-              headerStyle: { backgroundColor: ColorPalette.surface },
-              headerShadowVisible: false,
-            }}
-          />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

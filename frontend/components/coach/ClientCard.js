@@ -1,29 +1,25 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import { Users, Venus, Mars, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { Users, Venus, Mars, ChevronRight } from 'lucide-react-native'; // Cambiamos iconos
 import { ColorPalette } from "../../theme";
-import ClientInfoScreen from '../../screens/coach/ClientInfoScreen';
+import { useNavigation } from '@react-navigation/native'; // Importante para navegar
 import { useClientStore } from '../../apis/coach/useClientsStore'; 
 
 export default function ClientCard({ item }) {
-    const [isOpen, setIsOpen] = useState(false);
+    const navigation = useNavigation();
     const [loading, setLoading] = useState(false);
     const { getClientById } = useClientStore();
 
     const handlePress = async () => {
-        const nextState = !isOpen;
-        setIsOpen(nextState);
-
-        if (nextState && (!item.objetivos || item.objetivos.length === 0)) {
         try {
-            setLoading(true);
-            await getClientById(item.id);
+            setLoading(true);           
+            const client=await getClientById(item.id);
+            navigation.navigate('InfoClient', { client: client });
         } catch (error) {
-            console.log("Error al abrir card:", error);
+            console.log("Error al obtener detalle del cliente:", error);
         } finally {
             setLoading(false); 
         }
-    }
     };
 
     return (
@@ -32,6 +28,7 @@ export default function ClientCard({ item }) {
                 style={styles.mainInfo} 
                 onPress={handlePress}
                 activeOpacity={0.7}
+                disabled={loading} 
             >
                 <View style={styles.clientInfo}>
                     <View style={styles.avatar}>
@@ -44,16 +41,19 @@ export default function ClientCard({ item }) {
                 </View>
 
                 <View style={styles.clientAction}>
-                    {loading && <ActivityIndicator size="small" color={ColorPalette.primary} style={{marginRight: 8}} />}
-                    {item.sexo === "mujer" ? <Venus color='#f43799' size={20}/> : <Mars color='#2c1eed' size={20}/>}
-                    {isOpen ? <ChevronUp color="#494769" size={20} /> : <ChevronDown color="#494769" size={20} />}
+                    {loading ? (
+                        <ActivityIndicator size="small" color={ColorPalette.primary} />
+                    ) : (
+                        <>
+                            {item.sexo === "mujer" ? 
+                                <Venus color='#f43799' size={20}/> : 
+                                <Mars color='#2c1eed' size={20}/>
+                            }
+                            <ChevronRight color={ColorPalette.textSecondary} size={20} />
+                        </>
+                    )}
                 </View>
             </TouchableOpacity>
-
-            
-            {isOpen && !loading && (
-                <ClientInfoScreen client={item} />
-            )}
         </View>
     );
 }
@@ -66,7 +66,6 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         borderWidth: 1,
         borderColor: ColorPalette.border,
-        // Sombra suave
         elevation: 2,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -103,6 +102,8 @@ const styles = StyleSheet.create({
     clientAction: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8
+        gap: 8,
+        minWidth: 50, // Espacio para que el loader no mueva los iconos
+        justifyContent: 'flex-end'
     },
 });

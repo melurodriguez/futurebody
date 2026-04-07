@@ -1,18 +1,18 @@
+import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ColorPalette } from '../theme';
+
+// Pantallas
 import HomeScreen from '../screens/coach/HomeScreen';
 import ClientsScreen from '../screens/coach/ClientsScreen';
-
-// Importamos los iconos de Lucide
-import { Home, Users, Calendar, BarChart2, User } from 'lucide-react-native';
 import CalendarScreen from '../screens/coach/CalendarScreen';
 import CoachStatsScreen from '../screens/coach/StatsScreen';
 import ProfileScreen from '../screens/coach/ProfileScreen';
-import ClientProfileScreen from '../screens/clients/ClientProfileScreen';
-import ClientInfoScreen from '../screens/coach/ClientInfoScreen';
+
+// Iconos de Lucide
+import { Home, Users, Calendar, BarChart2, User } from 'lucide-react-native';
 
 const Tab = createBottomTabNavigator();
-
 
 const CoachTabs = () => {
   return (
@@ -22,17 +22,20 @@ const CoachTabs = () => {
         tabBarShowLabel: false, 
         tabBarStyle: {
           backgroundColor: ColorPalette.surface, 
-          borderTopColor: ColorPalette.border,
-          height: 90,          
+          height: 90,                  
           paddingBottom: 25,    
           paddingTop: 10,       
           borderTopWidth: 1,    
-          elevation: 5
+          elevation: 5,
+          borderTopColor: ColorPalette.border,
         },
         tabBarActiveTintColor: ColorPalette.primary, 
         tabBarInactiveTintColor: ColorPalette.textSecondary,
-        tabBarIcon: ({ color, size, focused }) => {
+        // LÓGICA DE ICONOS DINÁMICOS
+        tabBarIcon: ({ color, focused }) => {
           let IconComponent;
+          const size = focused ? 28 : 24;
+          const strokeWidth = focused ? 2.5 : 2;
 
           if (route.name === 'Home') IconComponent = Home;
           else if (route.name === 'Clients') IconComponent = Users;
@@ -43,8 +46,8 @@ const CoachTabs = () => {
           return (
             <IconComponent 
               color={color} 
-              size={focused ? 28 : 24} 
-              strokeWidth={focused ? 2 : 1.5} 
+              size={size} 
+              strokeWidth={strokeWidth} 
             />
           );
         },

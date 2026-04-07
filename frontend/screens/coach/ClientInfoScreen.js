@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Dimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { ColorPalette } from '../../theme';
 import { useObjetivosStore } from '../../apis/useObjetivosStore';
 import { useAuthStore } from '../../apis/useAuthStore';
+import { useClientStore } from '../../apis/coach/useClientsStore';
+import HistorialModal from '../../components/coach/HistorialModal';
+import AddMedicionesForm from '../../components/coach/AddMedicionesForm';
 
-export default function  ClientInfoScreen({ client }) {
+const { width } = Dimensions.get('window');
+
+export default function ClientInfoScreen({ route, navigation }) {
+
+  const { client } = route.params; 
+
   const { 
     getObjetivosByCliente, 
     getAllTipos, 
@@ -14,15 +22,28 @@ export default function  ClientInfoScreen({ client }) {
     objetivos 
   } = useObjetivosStore();
 
+  const { createMedicion, createMedidaCorporal, deleteMedicion, deleteMedidaCorporal, getClientById}=useClientStore()
+
   const usuarioLogueado = useAuthStore((state) => state.user);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedTemp, setSelectedTemp] = useState(null);
   const esProfesional = usuarioLogueado?.rol === 'profesional';
 
-  const ultimaMedicion = client.mediciones?.[0] || {};
-  
+  const mediciones = client.mediciones || [];
+  const totalMediciones = mediciones.length;
+
+  const ultimaMedicion = totalMediciones > 0 ? mediciones[totalMediciones - 1] : {};
+  const penultimaMedicion = totalMediciones > 1 ? mediciones[totalMediciones - 2] : {};
+
+
+  const medicionesInvertidas = [...mediciones].reverse();
+  const medidasInvertidas = [...(client.medidas_corporales || [])].reverse();
+
 
   const objetivoData = objetivos.length > 0 ? objetivos[0] : (client.objetivos?.[0] || null);
+
+  const [historialVisible, setHistorialVisible]=useState(false)
+  const [addForm, setAddForm]=useState(false)
 
   useEffect(() => {
     if (client?.id && usuarioLogueado?.id) {
@@ -31,183 +52,324 @@ export default function  ClientInfoScreen({ client }) {
     }
   }, [client?.id]);
 
-  const handleSave = async () => {
-    if (!selectedTemp || selectedTemp === objetivoData?.tipo) {
-      return setIsEditing(false);
+  const renderDiff = (actual, anterior, type = 'default') => {
+    if (!anterior || actual === undefined || anterior === undefined) return null;
+
+    const diff = parseFloat((actual - anterior).toFixed(1));
+    
+    let bgColor = '#F1F5F9'; // Gris neutral
+    let iconName = 'minus';   // Icono neutral
+    let iconColor = '#64748B'; // Texto neutral
+
+    if (diff === 0) {
+      bgColor = '#FEF9C3'; 
+      iconName = 'minus';
+      iconColor = '#CA8A04'; 
+    } else {
+      const isPositive = diff > 0;
+      let isGoodChange = false;
+      if (type === 'musculo' || type === 'altura') {
+          isGoodChange = isPositive; 
+      } else if (type === 'grasa') {
+          isGoodChange = !isPositive; 
+      } else {
+          isGoodChange = !isPositive; 
+      }
+
+      bgColor = isGoodChange ? '#DCFCE7' : '#FEE2E2';
+      iconColor = isGoodChange ? '#10B981' : '#EF4444';
+      iconName = isPositive ? 'arrow-up' : 'arrow-down';
     }
 
-    const dataUpdate = {
-      tipo: selectedTemp,
-      valor_inicial: objetivoData.valor_inicial,
-      valor_objetivo: objetivoData.valor_objetivo
-    };
-
-    const success = await updateObjetivo(
-      objetivoData.id, 
-      client.id, 
-      esProfesional, 
-      dataUpdate
+    return (
+      <View style={[styles.diffBadge, { backgroundColor: bgColor }]}>
+        <Feather name={iconName} size={10} color={iconColor} />
+        <Text style={[styles.diffText, { color: iconColor }]}>
+          {Math.abs(diff)}
+        </Text>
+      </View>
     );
+  };
 
-    if (success) {
-      setIsEditing(false);
-      Alert.alert("Éxito", "Objetivo actualizado");
-    } else {
-      Alert.alert("Error", "No se pudo actualizar el objetivo");
+  const handleSaveMediciones = async (formData) => {
+    try {
+      const composicionData = {
+        cliente_id: client.id,
+        peso: parseFloat(formData.peso) || 0,
+        grasa: parseFloat(formData.grasa) || 0,
+        masa_muscular: parseFloat(formData.masa_muscular) || 0,
+        altura: parseFloat(formData.altura) || 0,
+      };
+
+      const anatomiaData = {
+        cliente_id: client.id,
+        brazo: parseFloat(formData.brazo) || 0,
+        pecho: parseFloat(formData.pecho) || 0,
+        cintura: parseFloat(formData.cintura) || 0,
+        cadera: parseFloat(formData.cadera) || 0,
+        pierna: parseFloat(formData.pierna) || 0,
+      };
+
+
+      await Promise.all([
+        createMedicion(client.id, esProfesional, composicionData),
+        createMedidaCorporal(client.id, esProfesional, anatomiaData)
+      ]);
+
+      setAddForm(false);
+    
+      Alert.alert("¡Logrado!", "Los datos se guardaron correctamente.");
+
+      await getClientById(client.id);
+
+
+
+    } catch (error) {
+      if (error.response?.status === 422) {
+      console.log("DETALLE ERROR 422:", JSON.stringify(error.response.data.detail, null, 2));
+    }
+      Alert.alert("Error", "No se pudieron guardar todos los datos. Revisa la conexión.");
     }
   };
 
+  const handleDeleteEvolution = async (medicionId, medidaId) => {
+    try {
+      const clienteId = client.id;
+
+      await Promise.all([
+        deleteMedicion(medicionId, clienteId, esProfesional),
+        medidaId ? deleteMedidaCorporal(medidaId, clienteId, esProfesional) : Promise.resolve()
+      ]);
+
+      await getClientById(clienteId);
+      
+      Alert.alert("Eliminado", "El registro se ha borrado correctamente.");
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "No se pudo eliminar el registro completamente.");
+    }
+  };
+
+  if (addForm) {
+    return (
+      <AddMedicionesForm
+        clienteId={client.id} 
+        onCancel={() => setAddForm(false)} 
+        onSubmit={handleSaveMediciones} 
+      />
+    );
+  }
+
   return (
-    <View style={styles.subContainer}>
-      {/* Sección: Objetivos */}
-      <View style={styles.section}>
+    
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      
+      {/* HEADER: Perfil resumido */}
+      <View style={styles.profileCard}>
+        <View style={styles.avatarPlaceholder}>
+          <Text style={styles.avatarText}>{client.nombre?.charAt(0)}</Text>
+        </View>
+        <View>
+          <Text style={styles.clientName}>{client.nombre}</Text>
+          <Text style={styles.clientSubtitle}>Cliente desde {new Date().getFullYear()}</Text>
+        </View>
+      </View>
+
+      {/* SECCIÓN: OBJETIVO PRINCIPAL */}
+      <View style={styles.card}>
         <View style={styles.headerRow}>
-          <View style={styles.sectionHeader}>
-            <Feather name="target" size={16} color={ColorPalette.primary} />
-            <Text style={styles.sectionTitle}>Objetivo</Text>
-          </View>
-          
-          {esProfesional && objetivoData && (
-            <TouchableOpacity 
-              onPress={isEditing ? handleSave : () => {
-                setSelectedTemp(objetivoData.tipo);
-                setIsEditing(true);
-              }}
-              style={styles.editButton}
-            >
-              <Feather 
-                name={isEditing ? "check-circle" : "edit-2"} 
-                size={16} 
-                color={isEditing ? "#10B981" : ColorPalette.primary} 
-              />
-              <Text style={[styles.editText, isEditing && { color: '#10B981' }]}>
-                {isEditing ? "Guardar" : "Editar"}
-              </Text>
+          <Text style={styles.cardTitle}>Objetivo Actual</Text>
+          {esProfesional && (
+            <TouchableOpacity onPress={() => setIsEditing(!isEditing)}>
+              <Feather name={isEditing ? "x-circle" : "edit-3"} size={18} color={ColorPalette.primary} />
             </TouchableOpacity>
           )}
         </View>
 
         {!isEditing ? (
-          <View style={styles.displayCard}>
-            <Text style={styles.displayText}>
-              {objetivoData 
-                ? objetivoData.tipo.split('_').join(' ').toUpperCase() 
-                : "SIN OBJETIVO ASIGNADO"}
-            </Text>
+          <View style={styles.goalContainer}>
+             <Text style={styles.goalValue}>
+                {objetivoData ? objetivoData.tipo.replace('_', ' ').toUpperCase() : "SIN DEFINIR"}
+             </Text>
+             {objetivoData && (
+               <View style={styles.progressTrack}>
+                  <View style={styles.progressBar}>
+                    <View style={[styles.progressFill, { width: '65%' }]} /> 
+                  </View>
+                  <Text style={styles.progressLabel}>65% completado</Text>
+               </View>
+             )}
           </View>
         ) : (
-          <View style={styles.dropdownContainer}>
-            {tipos.map((tipoItem, index) => (
-              <TouchableOpacity 
-                key={index}
-                style={[
-                  styles.optionItem, 
-                  selectedTemp === tipoItem && styles.optionSelected
-                ]}
-                onPress={() => setSelectedTemp(tipoItem)}
-              >
-                <Text style={[
-                  styles.optionText,
-                  selectedTemp === tipoItem && styles.optionTextSelected
-                ]}>
-                  {tipoItem.split('_').join(' ').toUpperCase()}
-                </Text>
-                {selectedTemp === tipoItem && (
-                  <Feather name="check" size={14} color="white" />
-                )}
-              </TouchableOpacity>
-            ))}
+          <View style={styles.editGrid}>
+             {tipos.map((t) => (
+               <TouchableOpacity 
+                key={t} 
+                style={[styles.chip, selectedTemp === t && styles.chipActive]}
+                onPress={() => setSelectedTemp(t)}
+               >
+                 <Text style={[styles.chipText, selectedTemp === t && styles.chipTextActive]}>{t.replace('_', ' ')}</Text>
+               </TouchableOpacity>
+             ))}
           </View>
         )}
       </View>
 
-      {/* Sección: Mediciones Dinámicas */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Feather name="activity" size={16} color={ColorPalette.primary} />
-          <Text style={styles.sectionTitle}>Última Evaluación</Text>
-        </View>
-        <View style={styles.measurementsGrid}>
-          <MeasureItem 
-            label="Peso" 
-            value={ultimaMedicion.peso || '--'} 
-            unit="kg" 
-          />
-          <MeasureItem 
-            label="Grasa" 
-            value={ultimaMedicion.grasa || '--'} 
-            unit="%" 
-          />
-          <MeasureItem 
-            label="Músculo" 
-            value={ultimaMedicion.masa_muscular || '--'} 
-            unit="kg" 
-          /> 
-        </View>
+      {/* SECCIÓN: MÉTRICAS Y COMPARATIVAS */}
+      <Text style={styles.sectionLabel}>Último Progreso</Text>
+      <View style={styles.metricsGrid}>
+        <MetricCard 
+          label="Peso" 
+          value={ultimaMedicion.peso} 
+          unit="kg" 
+          diff={renderDiff(ultimaMedicion.peso, penultimaMedicion.peso, 'peso')}
+        />
+        <MetricCard 
+          label="Grasa" 
+          value={ultimaMedicion.grasa} 
+          unit="%" 
+          diff={renderDiff(ultimaMedicion.grasa, penultimaMedicion.grasa, 'grasa')}
+        />
+        <MetricCard 
+          label="Músculo" 
+          value={ultimaMedicion.masa_muscular} 
+          unit="%" 
+          diff={renderDiff(ultimaMedicion.masa_muscular, penultimaMedicion.masa_muscular, 'musculo')}
+        />
+        <MetricCard 
+          label="Altura" 
+          value={ultimaMedicion.altura} 
+          unit="m" 
+          diff={renderDiff(ultimaMedicion.altura, penultimaMedicion.altura, 'altura')}
+        />
       </View>
-
-      {/* Sección: Metas Numéricas  */}
-      {objetivoData && (
-        <View style={styles.section}>
-          <View style={styles.goalBanner}>
-             <Text style={styles.goalText}>
-               Progreso: {objetivoData.valor_inicial} {objetivoData.tipo.includes('grasa') ? '%' : 'kg'} 
-               {'  '}<Feather name="arrow-right" size={12} />{'  '} 
-               Meta: {objetivoData.valor_objetivo} {objetivoData.tipo.includes('grasa') ? '%' : 'kg'}
-             </Text>
+      {/* SECCIÓN: COMPARATIVA VISUAL 
+      MODIFICAR MEDISAS SEGUN OBJETIVO*/}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Metas Numéricas</Text>
+        <View style={styles.comparisonRow}>
+          <View style={styles.compItem}>
+            <Text style={styles.compLabel}>Inicial</Text>
+            <Text style={styles.compValue}>{objetivoData?.valor_inicial || '--'}kg</Text>
+          </View>
+          <Feather name="chevrons-right" size={20} color={ColorPalette.border} />
+          <View style={styles.compItem}>
+            <Text style={styles.compLabel}>Actual</Text>
+            <Text style={[styles.compValue, {color: ColorPalette.primary}]}>{ultimaMedicion.peso || '--'}kg</Text>
+          </View>
+          <Feather name="chevrons-right" size={20} color={ColorPalette.border} />
+          <View style={styles.compItem}>
+            <Text style={styles.compLabel}>Meta</Text>
+            <Text style={[styles.compValue, {color: '#10B981'}]}>{objetivoData?.valor_objetivo || '--'}kg</Text>
           </View>
         </View>
-      )}
-
-      {/* Acciones */}
-      <View style={styles.actionGrid}>
-        <ActionButton icon="file-text" label="Rutina" color="#E0E7FF" iconColor={ColorPalette.primary} />
-        <ActionButton icon="pie-chart" label="Dieta" color="#FEF3C7" iconColor="#D97706" />
-        <ActionButton icon="trending-up" label="Progreso" color="#FCE7F3" iconColor="#DB2777" />
       </View>
-    </View>
+
+      {/* ACCIONES RÁPIDAS */}
+      <View style={styles.footerActions}>
+        <BigActionButton icon="calendar" label="Nueva Medida" color={ColorPalette.primary} onPress={()=>setAddForm(true)} />
+        <BigActionButton icon="clipboard" label="Ver Historial" color={ColorPalette.textSecondary} onPress={()=>setHistorialVisible(true)} />
+      </View>
+
+
+      <HistorialModal 
+        visible={historialVisible} 
+        onClose={() => setHistorialVisible(false)} 
+        mediciones={client.mediciones} 
+        medidasCorporales={client.medidas_corporales}
+        onDelete={handleDeleteEvolution} 
+      />
+
+                
+      <View style={{ height: 100 }} />
+    </ScrollView>
   );
 }
 
-const MeasureItem = ({ label, value, unit }) => (
-  <View style={styles.measureCard}>
-    <Text style={styles.measureLabel}>{label} ({unit})</Text>
-    <Text style={styles.measureValue}>{value}</Text>
+// Sub-componentes para limpiar el código
+const MetricCard = ({ label, value, unit, diff }) => (
+  <View style={styles.metricCard}>
+    <Text style={styles.metricLabel}>{label}</Text>
+    <View style={styles.metricMain}>
+      <Text style={styles.metricValue}>{value || '--'}</Text>
+      <Text style={styles.metricUnit}>{unit}</Text>
+    </View>
+    {diff}
   </View>
 );
 
-const ActionButton = ({ icon, label, color, iconColor }) => (
-  <TouchableOpacity style={styles.actionItem}>
-    <View style={[styles.actionIcon, { backgroundColor: color }]}>
-      <Feather name={icon} size={18} color={iconColor} />
-    </View>
-    <Text style={styles.actionLabel}>{label}</Text>
+const BigActionButton = ({ icon, label, color, onPress }) => (
+  <TouchableOpacity 
+    style={[styles.bigButton, { borderColor: color }]} 
+    onPress={onPress}   
+    activeOpacity={0.7}
+  >
+    <Feather name={icon} size={20} color={color} />
+    <Text style={[styles.bigButtonText, { color: color }]}>{label}</Text>
   </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({
-  subContainer: { marginTop: 15, borderTopWidth: 1, borderTopColor: ColorPalette.border, paddingTop: 15 },
-  section: { marginBottom: 15 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  sectionTitle: { fontSize: 11, fontWeight: '800', color: ColorPalette.textSecondary, textTransform: 'uppercase' },
-  editButton: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  editText: { fontSize: 12, fontWeight: '700', color: ColorPalette.primary },
-  displayCard: { backgroundColor: '#F8FAFC', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: ColorPalette.border },
-  displayText: { fontSize: 13, fontWeight: '700', color: '#1E293B' },
-  dropdownContainer: { backgroundColor: '#FFF', borderRadius: 12, borderWidth: 1, borderColor: ColorPalette.border, overflow: 'hidden' },
-  optionItem: { padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  optionSelected: { backgroundColor: ColorPalette.primary },
-  optionText: { fontSize: 12, color: '#475569', fontWeight: '600' },
-  optionTextSelected: { color: 'white', fontWeight: '800' },
-  measurementsGrid: { flexDirection: 'row', justifyContent: 'space-between' },
-  measureCard: { backgroundColor: '#F8FAFC', width: '31%', padding: 10, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: ColorPalette.border },
-  measureLabel: { fontSize: 9, fontWeight: '700', color: ColorPalette.textSecondary },
-  measureValue: { fontSize: 14, fontWeight: '800', color: ColorPalette.primary },
-  goalBanner: { backgroundColor: '#FCE7F3' + '10', padding: 8, borderRadius: 8, alignItems: 'center' },
-  goalText: { fontSize: 11, fontWeight: '700', color: '#DB2777' },
-  actionGrid: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginTop: 10 },
-  actionItem: { flex: 1, alignItems: 'center' },
-  actionIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-  actionLabel: { fontSize: 11, fontWeight: '700', color: ColorPalette.textPrimary },
+  container: { flex: 1, backgroundColor: '#FBFBFE', padding: 20 },
+  profileCard: { flexDirection: 'row', alignItems: 'center', marginBottom: 25, gap: 15 },
+  avatarPlaceholder: { width: 60, height: 60, borderRadius: 30, backgroundColor: ColorPalette.primary, justifyContent: 'center', alignItems: 'center' },
+  avatarText: { color: 'white', fontSize: 24, fontWeight: 'bold' },
+  clientName: { fontSize: 22, fontWeight: '800', color: ColorPalette.textPrimary },
+  clientSubtitle: { fontSize: 13, color: ColorPalette.textSecondary },
+  
+  card: { backgroundColor: 'white', borderRadius: 20, padding: 20, marginBottom: 20, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: ColorPalette.textPrimary },
+  
+  goalContainer: { alignItems: 'center' },
+  goalValue: { fontSize: 18, fontWeight: '800', color: ColorPalette.primary, marginBottom: 15 },
+  progressTrack: { width: '100%' },
+  progressBar: { height: 8, backgroundColor: '#F1F5F9', borderRadius: 4, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: ColorPalette.primary, borderRadius: 4 },
+  progressLabel: { fontSize: 11, color: ColorPalette.textSecondary, marginTop: 8, textAlign: 'right' },
+
+  sectionLabel: { fontSize: 14, fontWeight: '800', color: ColorPalette.textSecondary, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  metricsGrid: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap',          
+    justifyContent: 'space-between', 
+    marginBottom: 20,
+    gap: 12                    
+  },
+  metricCard: { 
+    backgroundColor: 'white', 
+    width: '48%',              
+    padding: 15, 
+    borderRadius: 20, 
+    alignItems: 'center', 
+    borderWidth: 1, 
+    borderColor: '#F1F5F9',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+  },
+  metricLabel: { fontSize: 11, color: ColorPalette.textSecondary, marginBottom: 5 },
+  metricMain: { flexDirection: 'row', alignItems: 'baseline' },
+  metricValue: { fontSize: 18, fontWeight: '800', color: ColorPalette.textPrimary },
+  metricUnit: { fontSize: 10, color: ColorPalette.textSecondary, marginLeft: 2 },
+  
+  diffBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, marginTop: 8, gap: 2 },
+  diffText: { fontSize: 10, fontWeight: 'bold' },
+
+  comparisonRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
+  compItem: { alignItems: 'center' },
+  compLabel: { fontSize: 10, color: ColorPalette.textSecondary, marginBottom: 4 },
+  compValue: { fontSize: 16, fontWeight: '800' },
+
+  editGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F1F5F9' },
+  chipActive: { backgroundColor: ColorPalette.primary },
+  chipText: { fontSize: 12, color: ColorPalette.textSecondary, fontWeight: '600' },
+  chipTextActive: { color: 'white' },
+
+  footerActions: { flexDirection: 'row', gap: 15, marginTop: 10 },
+  bigButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 15, borderRadius: 15, borderWidth: 1.5, gap: 8 },
+  bigButtonText: { fontWeight: '700', fontSize: 14 }
 });
