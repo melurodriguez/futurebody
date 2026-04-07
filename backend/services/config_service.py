@@ -53,52 +53,18 @@ async def update_configuracion_service(db: AsyncSession, usuario_id: int, config
         await db.rollback()
         raise e
 
-async def generar_disponibilidad_automatica_service(
-    db: AsyncSession, 
-    usuario_id: int, 
-    fecha_inicio: date, 
-    semanas: int = 2
-):
-    """
-    Orquesta la generación masiva de bloques de tiempo.
-    """
-    
-    config = await ConfiguracionCoachDAO.get_by_usuario_id(db, usuario_id)
-    if not config:
-        raise ConfigNotFound(usuario_id=usuario_id)
 
-    if fecha_inicio < date.today():
-        raise InvalidTimeRangeError("No se puede generar disponibilidad para fechas pasadas.")
     
-    fecha_fin = fecha_inicio + timedelta(weeks=semanas)
+async def create_config_service(db: AsyncSession, config_data: ConfiguracionCreate, usuario_id:int):
+
+    if config_data.hora_fin < config_data.hora_inicio:
+        raise InvalidTimeRangeError()
+
+    data = config_data.model_dump()
+    data["usuario_id"] = usuario_id
 
     try:
-        await DisponibilidadDAO.eliminar_bloques_disponibles_rango(
-            db=db,
-            coach_id=usuario_id,
-            fecha_inicio=fecha_inicio,
-            fecha_fin=fecha_fin
-        )
-
-        resultado = await DisponibilidadDAO.generar_bloques_masivos(
-            db=db,
-            coach_id=usuario_id,
-            config=config,
-            fecha_inicio=fecha_inicio,
-            semanas=semanas
-        )
-        
-        await db.commit()
-        return resultado
-
-    except Exception as e:
-        await db.rollback()
-        raise e
-    
-async def create_config_service(db: AsyncSession, config_data: dict):
-    nueva_config = await ConfiguracionCoachDAO.create_config(db, config_data)
-    
-    try:
+        nueva_config = await ConfiguracionCoachDAO.create_config(db, data)
         await db.commit()
         await db.refresh(nueva_config)
         return nueva_config

@@ -1,7 +1,7 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import date, timedelta
 from backend.database import SessionLocal  
-from backend.services.config_service import generar_disponibilidad_automatica_service
+from backend.services.disponibilidad_service import generar_disponibilidad_automatica_service
 from backend.dao.usuarios_dao import UsuarioDAO
 
 scheduler = AsyncIOScheduler()

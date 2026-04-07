@@ -50,5 +50,8 @@ export const useConfigStore = create((set, get) => ({
         } finally {
             set({ loading: false });
         }
-    }
+    },
+
+
+    
 }));
