@@ -2,8 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.dao.clientes_dao import ClienteDAO
 from backend.schemas.clientes_schema import ClienteCreate, ClienteUpdate
 from backend.models.clientes_model import Cliente
-from backend.exceptions.clientes_exceptions import ClienteAlreadyExistsError,ClienteError,ClienteNotFoundError,IncompatibleGenderDataError,InvalidBirthDateError
-from datetime import datetime, date
+from backend.exceptions.clientes_exceptions import ClienteAlreadyExistsError,ClienteError,ClienteNotFoundError,IncompatibleGenderDataError,InvalidBirthDateError, InvalidTimeRangeError
+from datetime import datetime, date, timedelta
 from backend.dao.usuarios_dao import UsuarioDAO
 from backend.exceptions.usuarios_exceptions import UserNotFoundError
 
@@ -83,4 +83,12 @@ async def delete_cliente_service(db:AsyncSession, cliente_id:int):
         return True
     except Exception as e:
         await db.rollback()
+        raise e
+
+async def get_clients_stats_service( db:AsyncSession):
+    mes_anterior= date.today() - timedelta(days=30)
+    fecha_actual= date.today()
+    try:
+        return await ClienteDAO.calculate_stats(db=db, mes_anterior=mes_anterior, fecha_actual=fecha_actual)
+    except Exception as e:
         raise e

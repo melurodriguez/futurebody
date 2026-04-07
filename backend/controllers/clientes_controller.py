@@ -9,7 +9,8 @@ from backend.services.clientes_service import (
     get_cliente_by_id,
     create_cliente_service,
     patch_cliente_service,
-    delete_cliente_service
+    delete_cliente_service,
+    get_clients_stats_service
 )
 from backend.exceptions.clientes_exceptions import ClienteAlreadyExistsError,ClienteError,ClienteNotFoundError,IncompatibleGenderDataError,InvalidBirthDateError
 
@@ -18,6 +19,13 @@ router = APIRouter(prefix='/clientes', tags=['Clientes'])
 @router.get("/", response_model=List[ClienteResponse])
 async def get_all_clientes_router(db: AsyncSession = Depends(get_db)):
     return await get_clientes_service(db=db)
+
+@router.get("/stats", response_model=dict)
+async def get_clients_stats(db:AsyncSession=Depends(get_db)):
+    try:
+        return await get_clients_stats_service(db=db)
+    except Exception as e:
+        return e
 
 @router.get("/{cliente_id}", response_model=ClienteDetalleResponse)
 async def get_cliente_by_id_router(cliente_id: int, db: AsyncSession = Depends(get_db)):
@@ -53,3 +61,4 @@ async def delete_cliente_router(cliente_id: int, db: AsyncSession = Depends(get_
         return None
     except ClienteNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    
