@@ -20,20 +20,25 @@ export const useClientStore = create((set) => ({
     }
   },
 
-  // GET BY ID
-  getClientById: async (clientId) => {
-    try {
-        const response = await api.get(`/clientes/${clientId}`);
-        set((state) => ({
-            clients: state.clients.map(c => c.id === clientId ? response.data : c)
-        }));
-        return response.data;
-    } catch (err) {
-        console.error("Error al obtener detalle del cliente:", err);
-        return null;
+// GET BY ID
+getClientById: async (clientId) => {
+  try {
+    const idToFind = Number(clientId);
+    const response = await api.get(`/clientes/${idToFind}`);
+    
+    if (response.data) {
+      set((state) => ({
+        clients: state.clients.map(c => 
+          Number(c.id) === idToFind ? response.data : c
+        )
+      }));
+      return response.data;
     }
-  },
-
+  } catch (err) {
+    console.error("Error al obtener detalle del cliente:", err);
+    return null;
+  }
+},
   // CREATE
   createClient: async (ClientData) => {
     try {
@@ -81,5 +86,72 @@ export const useClientStore = create((set) => ({
     } finally {
       set({ loading: false });
     }
-  }
+  },
+
+  //CREAR MEDICION
+  createMedicion: async (clienteId, esProfesional, data) => {
+    set({ loading: true });
+    try {
+      const response = await api.post(`/mediciones/?cliente_id=${clienteId}&es_profesional=${esProfesional}`, data);
+      return response.data;
+    } catch (err) {
+      console.error("Error en createMedicion:", err);
+      throw err; 
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+
+  //CREAR MEDIDA
+  createMedidaCorporal: async (clienteId, esProfesional, data) => {
+    set({ loading: true });
+    try {
+      const response = await api.post(`/medidas/?cliente_id=${clienteId}&es_profesional=${esProfesional}`, data);
+      return response.data;
+    } catch (err) {
+      console.error("Error en createMedidaCorporal:", err);
+      throw err;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  //DELETE MEDICION
+  deleteMedicion: async (medicionId, clienteId, esProfesional) => {
+    set({ loading: true });
+    try {
+      await api.delete(`/mediciones/${medicionId}`, {
+        params: {
+          cliente_id: clienteId,
+          es_profesional: esProfesional
+        }
+      });
+      return true;
+    } catch (err) {
+      console.error("Error al eliminar medición:", err);
+      throw err;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  // DELETE MEDIDA CORPORAL
+  deleteMedidaCorporal: async (medidaId, clienteId, esProfesional) => {
+    set({ loading: true });
+    try {
+      await api.delete(`/medidas/${medidaId}`, {
+        params: {
+          cliente_id: clienteId,
+          es_profesional: esProfesional
+        }
+      });
+      return true;
+    } catch (err) {
+      console.error("Error al eliminar medida corporal:", err);
+      throw err;
+    } finally {
+      set({ loading: false });
+    }
+  },
 }));

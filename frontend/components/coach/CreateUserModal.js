@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Modal, TextInput, TouchableOpacity, View, Text, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
 import { ColorPalette } from "../../theme";
+import { useClientStore } from "../../apis/coach/useClientsStore";
 
 export default function CreateUserModal({ visible, onClose }) {
     const [userForm, setUserForm] = useState({
@@ -11,6 +12,8 @@ export default function CreateUserModal({ visible, onClose }) {
         is_profile_complete: false
     });
 
+    const {createCliente}=useClientStore()
+
     const handleChange = (field, value) => {
         setUserForm({
             ...userForm,
@@ -19,18 +22,16 @@ export default function CreateUserModal({ visible, onClose }) {
     };
 
     const handleRegistration = () => {
-        console.log("Registrando usuario:", userForm);
-        // Aquí iría tu lógica de fetch a FastAPI
+        
     };
 
     return (
         <Modal 
             visible={visible} 
-            animationType="slide" // Esto hace que suba desde abajo
+            animationType="slide" 
             transparent={true}
             onRequestClose={onClose}
         >
-            {/* El KeyboardAvoidingView evita que el teclado tape los inputs */}
             <KeyboardAvoidingView 
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={{ flex: 1 }}
@@ -38,10 +39,9 @@ export default function CreateUserModal({ visible, onClose }) {
                 <TouchableOpacity 
                     style={styles.overlay} 
                     activeOpacity={1} 
-                    onPress={onClose} // Si tocan fuera, se cierra
+                    onPress={onClose} 
                 >
                     <View style={styles.sheetContainer}>
-                        {/* Indicador visual de que es algo que se puede arrastrar o cerrar */}
                         <View style={styles.dragHandle} />
 
                         <Text style={styles.title}>Nuevo Usuario</Text>
@@ -50,21 +50,19 @@ export default function CreateUserModal({ visible, onClose }) {
                             style={styles.input}
                             placeholder="Correo electrónico"
                             placeholderTextColor="#64748b"
-                            // ... resto de props
                         />
 
                         <TextInput
                             style={styles.input}
                             placeholder="Alias"
                             placeholderTextColor="#64748b"
-                            // ... resto de props
                         />
 
                         <TextInput
                         style={styles.input}
                         placeholder="*******"
                         placeholderTextColor="#64748b"
-                        secureTextEntry={true} // CORRECTO: Para contraseñas
+                        secureTextEntry={true} 
                         value={userForm.password}
                         onChangeText={(text) => handleChange('password', text)}
                         />

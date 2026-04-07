@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
@@ -42,7 +42,7 @@ async def get_medicion_by_id_router(medicion_id: int, cliente_id:int, es_profesi
 
 
 @router.post("/", response_model=MedicionResponse, status_code=status.HTTP_201_CREATED)
-async def create_medicion_router(medicion_data: MedicionCreate,cliente_id:int, es_profesional:bool, db: AsyncSession = Depends(get_db)):
+async def create_medicion_router(cliente_id:int, es_profesional:bool, medicion_data: MedicionCreate=Body(...),db: AsyncSession = Depends(get_db)):
     try:
         return await create_medicion_service(db=db, medicion_data=medicion_data, cliente_id=cliente_id, es_profesional=es_profesional)
     except ClienteNotFoundError as e:
