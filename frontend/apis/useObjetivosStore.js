@@ -45,10 +45,10 @@ export const useObjetivosStore = create((set) => ({
   updateObjetivo: async (objetivoId, clienteId, esProfesional, dataUpdate) => {
     try {
         const response = await api.patch(`/objetivos/${objetivoId}`, dataUpdate, {
-            params: {
-                cliente_id: clienteId,
-                es_profesional: esProfesional
-            }
+          params: {
+            cliente_id: clienteId,
+            es_profesional: esProfesional,
+          }
         });
         set((state) => ({
             objetivos: state.objetivos.map(obj => obj.id === objetivoId ? response.data : obj)

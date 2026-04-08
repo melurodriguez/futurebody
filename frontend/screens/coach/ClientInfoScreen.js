@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Dimensions, TextInput } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { ColorPalette } from '../../theme';
 import { useObjetivosStore } from '../../apis/useObjetivosStore';
@@ -23,7 +23,6 @@ export default function ClientInfoScreen({ route, navigation }) {
   } = useObjetivosStore();
 
   const { createMedicion, createMedidaCorporal, deleteMedicion, deleteMedidaCorporal, getClientById}=useClientStore()
-
   const usuarioLogueado = useAuthStore((state) => state.user);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedTemp, setSelectedTemp] = useState(null);
@@ -45,13 +44,33 @@ export default function ClientInfoScreen({ route, navigation }) {
   const [historialVisible, setHistorialVisible]=useState(false)
   const [addForm, setAddForm]=useState(false)
 
+  const [editValues, setEditValues] = useState({
+  valor_inicial: '',
+  valor_objetivo: ''
+});
+
+// Al activar el modo edición, cargamos los valores actuales
+const handleEditing = () => {
+  if (!isEditing && objetivoData) {
+    setEditValues({
+      valor_inicial: objetivoData.valor_inicial?.toString() || '',
+      valor_objetivo: objetivoData.valor_objetivo?.toString() || ''
+    });
+    setSelectedTemp(objetivoData.tipo);
+  }
+  setIsEditing(!isEditing);
+};
+
   useEffect(() => {
     if (client?.id && usuarioLogueado?.id) {
       getObjetivosByCliente(client.id, usuarioLogueado.id, esProfesional);
-      if (esProfesional) getAllTipos(); 
+      if (esProfesional) getAllTipos();
+      
+      if (objetivoData) {
+        setSelectedTemp(objetivoData.tipo);
+      }
     }
   }, [client?.id]);
-
   const renderDiff = (actual, anterior, type = 'default') => {
     if (!anterior || actual === undefined || anterior === undefined) return null;
 
@@ -150,6 +169,44 @@ export default function ClientInfoScreen({ route, navigation }) {
     }
   };
 
+
+  const handleUpdateObjetivo = async () => {
+    if (!selectedTemp || !objetivoData?.id) return;
+
+    try {
+      const dataUpdate = {
+        tipo: selectedTemp,
+        valor_inicial: parseFloat(editValues.valor_inicial) || 0,
+        valor_objetivo: parseFloat(editValues.valor_objetivo) || 0
+      };
+
+      const success = await updateObjetivo(
+        objetivoData.id, 
+        client.id, 
+        esProfesional, 
+        dataUpdate
+      );
+
+      if (success) {
+        setIsEditing(false);
+        Alert.alert("¡Éxito!", "Objetivo actualizado correctamente.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "No se pudieron guardar los cambios.");
+    }
+  };
+
+  // Determinar la unidad según el tipo seleccionado
+  const getUnidad = (tipo) => {
+    if (!tipo) return 'kg';
+    const t = tipo.toLowerCase();
+    if (t.includes('grasa') || t.includes('porcentaje')) return '%';
+    return 'kg';
+  };
+
+  const unidadActual = getUnidad(selectedTemp);
+
+
   if (addForm) {
     return (
       <AddMedicionesForm
@@ -180,7 +237,7 @@ export default function ClientInfoScreen({ route, navigation }) {
         <View style={styles.headerRow}>
           <Text style={styles.cardTitle}>Objetivo Actual</Text>
           {esProfesional && (
-            <TouchableOpacity onPress={() => setIsEditing(!isEditing)}>
+            <TouchableOpacity onPress={handleEditing}>
               <Feather name={isEditing ? "x-circle" : "edit-3"} size={18} color={ColorPalette.primary} />
             </TouchableOpacity>
           )}
@@ -188,29 +245,66 @@ export default function ClientInfoScreen({ route, navigation }) {
 
         {!isEditing ? (
           <View style={styles.goalContainer}>
-             <Text style={styles.goalValue}>
-                {objetivoData ? objetivoData.tipo.replace('_', ' ').toUpperCase() : "SIN DEFINIR"}
-             </Text>
-             {objetivoData && (
-               <View style={styles.progressTrack}>
-                  <View style={styles.progressBar}>
-                    <View style={[styles.progressFill, { width: '65%' }]} /> 
-                  </View>
-                  <Text style={styles.progressLabel}>65% completado</Text>
-               </View>
-             )}
+            <Text style={styles.goalValue}>
+              {objetivoData ? objetivoData.tipo.replace('_', ' ').toUpperCase() : "SIN DEFINIR"}
+            </Text>
+            {objetivoData && (
+              <View style={styles.progressTrack}>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: '65%' }]} /> 
+                </View>
+                <Text style={styles.progressLabel}>65% completado</Text>
+              </View>
+            )}
           </View>
         ) : (
-          <View style={styles.editGrid}>
-             {tipos.map((t) => (
-               <TouchableOpacity 
-                key={t} 
-                style={[styles.chip, selectedTemp === t && styles.chipActive]}
-                onPress={() => setSelectedTemp(t)}
-               >
-                 <Text style={[styles.chipText, selectedTemp === t && styles.chipTextActive]}>{t.replace('_', ' ')}</Text>
-               </TouchableOpacity>
-             ))}
+          <View>
+            {/* Selección de Tipo (Chips) */}
+            <Text style={styles.inputLabel}>Tipo de Objetivo</Text>
+            <View style={[styles.editGrid, { marginBottom: 15 }]}>
+              {tipos.map((t) => (
+                <TouchableOpacity 
+                  key={t} 
+                  style={[styles.chip, selectedTemp === t && styles.chipActive]}
+                  onPress={() => setSelectedTemp(t)}
+                >
+                  <Text style={[styles.chipText, selectedTemp === t && styles.chipTextActive]}>
+                    {t.replace('_', ' ')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Inputs Numéricos */}
+            <View style={styles.inputRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.inputLabel}>Val. Inicial ({unidadActual})</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={editValues.valor_inicial}
+                  onChangeText={(txt) => setEditValues({ ...editValues, valor_inicial: txt })}
+                  placeholder="0.0"
+                />
+              </View>
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.inputLabel}>Val. Meta (kg)</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={editValues.valor_objetivo}
+                  onChangeText={(txt) => setEditValues({ ...editValues, valor_objetivo: txt })}
+                  placeholder="0.0"
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={styles.saveBtn} 
+              onPress={handleUpdateObjetivo}
+            >
+              <Text style={styles.saveBtnText}>Guardar Cambios</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -250,17 +344,17 @@ export default function ClientInfoScreen({ route, navigation }) {
         <View style={styles.comparisonRow}>
           <View style={styles.compItem}>
             <Text style={styles.compLabel}>Inicial</Text>
-            <Text style={styles.compValue}>{objetivoData?.valor_inicial || '--'}kg</Text>
+            <Text style={styles.compValue}>{objetivoData?.valor_inicial || '--'}{unidadActual}</Text>
           </View>
           <Feather name="chevrons-right" size={20} color={ColorPalette.border} />
           <View style={styles.compItem}>
             <Text style={styles.compLabel}>Actual</Text>
-            <Text style={[styles.compValue, {color: ColorPalette.primary}]}>{ultimaMedicion.peso || '--'}kg</Text>
+            <Text style={[styles.compValue, {color: ColorPalette.primary}]}>{ultimaMedicion.peso || '--'}{unidadActual}</Text>
           </View>
           <Feather name="chevrons-right" size={20} color={ColorPalette.border} />
           <View style={styles.compItem}>
             <Text style={styles.compLabel}>Meta</Text>
-            <Text style={[styles.compValue, {color: '#10B981'}]}>{objetivoData?.valor_objetivo || '--'}kg</Text>
+            <Text style={[styles.compValue, {color: '#10B981'}]}>{objetivoData?.valor_objetivo || '--'}{unidadActual}</Text>
           </View>
         </View>
       </View>
@@ -275,8 +369,8 @@ export default function ClientInfoScreen({ route, navigation }) {
       <HistorialModal 
         visible={historialVisible} 
         onClose={() => setHistorialVisible(false)} 
-        mediciones={client.mediciones} 
-        medidasCorporales={client.medidas_corporales}
+        mediciones={medicionesInvertidas} 
+        medidasCorporales={medidasInvertidas}
         onDelete={handleDeleteEvolution} 
       />
 
@@ -371,5 +465,25 @@ const styles = StyleSheet.create({
 
   footerActions: { flexDirection: 'row', gap: 15, marginTop: 10 },
   bigButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 15, borderRadius: 15, borderWidth: 1.5, gap: 8 },
-  bigButtonText: { fontWeight: '700', fontSize: 14 }
+  bigButtonText: { fontWeight: '700', fontSize: 14 },
+  inputLabel: { fontSize: 11, fontWeight: '700', color: ColorPalette.textSecondary, marginBottom: 5, marginTop: 5 },
+  inputRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
+  input: { 
+    backgroundColor: '#F8FAFC', 
+    borderWidth: 1, 
+    borderColor: '#E2E8F0', 
+    borderRadius: 10, 
+    padding: 10, 
+    fontSize: 14, 
+    color: ColorPalette.textPrimary,
+    fontWeight: '600'
+  },
+  saveBtn: { 
+    backgroundColor: ColorPalette.primary, 
+    padding: 12, 
+    borderRadius: 12, 
+    alignItems: 'center', 
+    marginTop: 10 
+  },
+  saveBtnText: { color: 'white', fontWeight: '800', fontSize: 14 }
 });

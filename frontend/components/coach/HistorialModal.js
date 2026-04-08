@@ -55,7 +55,7 @@ export default function HistorialModal({ visible, onClose, onDelete,mediciones, 
             </View>
 
             {/* Lógica: Si el índice es el último de la lista, es la más reciente */}
-            {index === mediciones.length - 1 && (
+            {index === 0 && (
               <View style={styles.latestBadge}>
                 <Text style={styles.latestText}>Última</Text>
               </View>
