@@ -1,33 +1,60 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { ColorPalette } from '../../theme';
-
-const { width } = Dimensions.get('window');
+import { useClientStore } from '../../apis/coach/useClientsStore';
+import { useAuthStore } from '../../apis/useAuthStore';
 
 export default function ProgressScreen() {
-  // Datos simulados de evolución
+  const user = useAuthStore((state) => state.user);
+  const { currentCliente, fetchCurrentCliente, loading } = useClientStore();
+
+  useEffect(() => {
+    if (user?.id && !currentCliente) {
+      fetchCurrentCliente(user.id);
+    }
+  }, [user?.id]);
+
+  //Calcular la diferencia de peso
+  const pesoInicial = currentCliente?.peso_inicial || "-"; // Fallback por si no hay dato
+  const pesoActual = currentCliente?.peso || 0;
+  const diferencia = pesoInicial!=="-" ? (pesoActual - pesoInicial).toFixed(1) :  "-";
+  const esBajada = pesoActual < pesoInicial;
+
   const stats = [
-    { label: 'Peso Inicial', value: '85.0 kg', color: ColorPalette.textMuted },
-    { label: 'Peso Actual', value: '78.5 kg', color: ColorPalette.primary },
-    { label: 'Diferencia', value: '-6.5 kg', color: '#10B981' },
+    { label: 'Peso Inicial', value: `${pesoInicial} kg`, color: ColorPalette.textMuted },
+    { label: 'Peso Actual', value: `${pesoActual} kg`, color: ColorPalette.primary },
+    { 
+      label: 'Diferencia', 
+      value: `${diferencia > 0 ? '+' : ''}${diferencia} kg`, 
+      color: esBajada ? ColorPalette.success : '#F87171' 
+    },
   ];
 
+  // TRAER HISTORAIL DE BD
   const history = [
-    { id: '1', date: '28 Mar, 2026', weight: '78.5 kg', fat: '18%', note: 'Gran semana' },
-    { id: '2', date: '14 Mar, 2026', weight: '79.8 kg', fat: '19%', note: 'Estable' },
-    { id: '3', date: '01 Mar, 2026', weight: '81.2 kg', fat: '20%', note: 'Inicio de plan' },
+    { id: '1', date: '09 Abr, 2026', weight: `${pesoActual} kg`, fat: currentCliente?.porcentaje_grasa || '--%', note: 'Último registro' },
+    { id: '2', date: '28 Mar, 2026', weight: '79.8 kg', fat: '19%', note: 'Estable' },
+    { id: '3', date: '14 Mar, 2026', weight: '81.2 kg', fat: '20%', note: 'Inicio de plan' },
   ];
+
+  if (loading && !currentCliente) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color={ColorPalette.primary} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header */}
+      {/* Header con Botón de Registro */}
       <View style={styles.header}>
         <Text style={styles.title}>Mi Progreso</Text>
-       
+ 
       </View>
 
-      {/* Resumen de Transformación */}
+      {/* Resumen de Transformación Real */}
       <View style={styles.summaryCard}>
         {stats.map((item, index) => (
           <View key={index} style={styles.statItem}>
@@ -37,20 +64,24 @@ export default function ProgressScreen() {
         ))}
       </View>
 
-      {/* Visualización de Gráfico (Simulado con Estética Glass) */}
+      {/* Visualización de Gráfico */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Evolución de Peso</Text>
         <View style={styles.chartPlaceholder}>
           <View style={styles.chartLineContainer}>
-            {/* Aquí integrarías react-native-chart-kit o similares */}
-            <Feather name="trending-down" size={40} color={ColorPalette.accent} opacity={0.5} />
-            <Text style={styles.chartText}>Visualización de tendencia mensual</Text>
+            <Feather 
+              name={esBajada ? "trending-down" : "trending-up"} 
+              size={40} 
+              color={ColorPalette.accent} 
+              style={{ opacity: 0.5 }} 
+            />
+            <Text style={styles.chartText}>Tendencia de los últimos 3 meses</Text>
           </View>
           <View style={styles.chartLabels}>
-            <Text style={styles.chartLabelText}>Ene</Text>
             <Text style={styles.chartLabelText}>Feb</Text>
-            <Text style={[styles.chartLabelText, { color: ColorPalette.primary }]}>Mar</Text>
-            <Text style={styles.chartLabelText}>Abr</Text>
+            <Text style={styles.chartLabelText}>Mar</Text>
+            <Text style={[styles.chartLabelText, { color: ColorPalette.primary }]}>Abr</Text>
+            <Text style={styles.chartLabelText}>May</Text>
           </View>
         </View>
       </View>
@@ -59,7 +90,9 @@ export default function ProgressScreen() {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Historial de Medidas</Text>
-          <Feather name="filter" size={18} color={ColorPalette.textMuted} />
+          <TouchableOpacity>
+             <Feather name="filter" size={18} color={ColorPalette.textMuted} />
+          </TouchableOpacity>
         </View>
         
         {history.map((item) => (
@@ -171,4 +204,9 @@ const styles = StyleSheet.create({
   historyStats: { alignItems: 'flex-end', backgroundColor: ColorPalette.background, padding: 10, borderRadius: 15 },
   fatText: { fontSize: 16, fontWeight: '800', color: ColorPalette.primary },
   fatLabel: { fontSize: 10, color: ColorPalette.textMuted, fontWeight: '700' },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  }
 });

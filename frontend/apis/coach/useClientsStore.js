@@ -1,11 +1,27 @@
 import { create } from 'zustand';
 import api from '../../context/axiosInstance';
 
-export const useClientStore = create((set) => ({
+export const useClientStore = create((set, get) => ({
   clients: [],
-  stats:null,
+  currentCliente: null, 
+  stats: null,
   error: null,
   loading: false,
+
+  // Inicializar o buscar el cliente logueado (Global)
+  fetchCurrentCliente: async (userId) => {
+    set({ loading: true });
+    try {
+      const response = await api.get(`/clientes/${userId}`);
+      set({ currentCliente: response.data, error: null });
+      return response.data;
+    } catch (err) {
+      console.error("Error al obtener el perfil del cliente logueado:", err);
+      set({ error: "No se pudo cargar el perfil del cliente" });
+    } finally {
+      set({ loading: false });
+    }
+  },
 
   // GET ALL
   getClients: async () => {
@@ -20,25 +36,27 @@ export const useClientStore = create((set) => ({
     }
   },
 
-// GET BY ID
-getClientById: async (clientId) => {
-  try {
-    const idToFind = Number(clientId);
-    const response = await api.get(`/clientes/${idToFind}`);
-    
-    if (response.data) {
-      set((state) => ({
-        clients: state.clients.map(c => 
-          Number(c.id) === idToFind ? response.data : c
-        )
-      }));
-      return response.data;
+  // GET BY ID (si es el mismo usuario, actualiza currentCliente)
+  getClientById: async (clientId) => {
+    try {
+      const idToFind = Number(clientId);
+      const response = await api.get(`/clientes/${idToFind}`);
+      
+      if (response.data) {
+        set((state) => ({
+          clients: state.clients.map(c => 
+            Number(c.id) === idToFind ? response.data : c
+          ),
+          currentCliente: state.currentCliente?.id === idToFind ? response.data : state.currentCliente
+        }));
+        return response.data;
+      }
+    } catch (err) {
+      console.error("Error al obtener detalle del cliente:", err);
+      return null;
     }
-  } catch (err) {
-    console.error("Error al obtener detalle del cliente:", err);
-    return null;
-  }
-},
+  },
+
   // CREATE
   createClient: async (ClientData) => {
     try {
@@ -49,7 +67,7 @@ getClientById: async (clientId) => {
     }
   },
 
-  // UPDATE
+  // UPDATE (sincroniza con currentCliente)
   updateClient: async (cliente_id, ClientData) => {
     try {
       const response = await api.patch(`/clientes/${cliente_id}`, ClientData);
@@ -57,6 +75,7 @@ getClientById: async (clientId) => {
         clients: state.clients.map((c) =>
           c.id === cliente_id ? response.data : c
         ),
+        currentCliente: state.currentCliente?.id === cliente_id ? response.data : state.currentCliente
       }));
     } catch (err) {
       console.error("Error actualizando datos del cliente", err);
@@ -69,6 +88,7 @@ getClientById: async (clientId) => {
       await api.delete(`/clientes/${cliente_id}`);
       set((state) => ({
         clients: state.clients.filter((c) => c.id !== cliente_id),
+        currentCliente: state.currentCliente?.id === cliente_id ? null : state.currentCliente
       }));
     } catch (err) {
       console.error(`Error al eliminar cliente: ${cliente_id}`, err);
@@ -154,4 +174,6 @@ getClientById: async (clientId) => {
       set({ loading: false });
     }
   },
+
+  resetClientStore: () => set({ clients: [], currentCliente: null, stats: null, error: null })
 }));

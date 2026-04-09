@@ -1,19 +1,38 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { ColorPalette } from '../../theme';
 import { useAuthStore } from '../../apis/useAuthStore';
-import { Alert } from 'react-native';
+import { useClientStore } from '../../apis/coach/useClientsStore'; // Importamos el store de clientes
 
 export default function ClientProfileScreen() {
   const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+  
+  const { currentCliente, fetchCurrentCliente, loading } = useClientStore();
 
-  const logout= useAuthStore((state) => state.logout);
+  useEffect(() => {
+    if (user?.id && !currentCliente) {
+      fetchCurrentCliente(user.id);
+    }
+  }, [user?.id]);
 
   const clientStats = [
-    { label: 'Peso', value: '78.5 kg', icon: 'monitor' },
-    { label: 'Altura', value: '1.80 m', icon: 'user' }, 
-    { label: 'Racha', value: '12 días', icon: 'zap' },
+    { 
+      label: 'Peso', 
+      value: currentCliente?.peso ? `${currentCliente.peso} kg` : '--', 
+      icon: 'monitor' 
+    },
+    { 
+      label: 'Altura', 
+      value: currentCliente?.altura ? `${currentCliente.altura} m` : '--', 
+      icon: 'user' 
+    }, 
+    { 
+      label: 'Racha', 
+      value: '12 días', 
+      icon: 'zap' 
+    },
   ];
 
   const menuItems = [
@@ -23,7 +42,7 @@ export default function ClientProfileScreen() {
     { id: '4', title: 'Configuración de Cuenta', icon: 'settings' },
   ];
 
-   const handleLogout = () => {
+  const handleLogout = () => {
     Alert.alert(
       "Cerrar Sesión", 
       "¿Estás seguro de que quieres salir?", 
@@ -32,16 +51,19 @@ export default function ClientProfileScreen() {
         { 
           text: "Salir", 
           style: "destructive", 
-          onPress: () => {
-            logout();
-  
-          } 
+          onPress: () => logout() 
         }
       ]
     );
   };
 
-  if (!user) return null;
+  if (loading && !currentCliente) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color={ColorPalette.primary} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -52,7 +74,7 @@ export default function ClientProfileScreen() {
           <View style={styles.avatarBorder}>
             <View style={styles.avatarInner}>
               <Text style={styles.avatarLetter}>
-                {(user.alias || user.email).charAt(0).toUpperCase()}
+                {(currentCliente?.nombre || user?.alias || 'U').charAt(0).toUpperCase()}
               </Text>
             </View>
           </View>
@@ -61,13 +83,13 @@ export default function ClientProfileScreen() {
           </View>
         </View>
         
-        <Text style={styles.userName}>{user.alias || 'Usuario'}</Text>
+        <Text style={styles.userName}>{currentCliente?.nombre || user?.alias || 'Usuario'}</Text>
         <Text style={styles.userSub}>
-          Miembro desde {new Date(user.registered_at).getFullYear()}
+          {user?.email} • {currentCliente?.objetivo || 'Fitness'}
         </Text>
       </View>
 
-      {/* Grid de Medidas Rápidas */}
+      {/* Grid de Medidas Rápidas (Dinámico) */}
       <View style={styles.statsGrid}>
         {clientStats.map((stat, index) => (
           <View key={index} style={styles.statCard}>
@@ -80,17 +102,21 @@ export default function ClientProfileScreen() {
         ))}
       </View>
 
-      {/* Sección de Mi Coach */}
+      {/* Sección de Mi Coach  */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Mi Coach</Text>
         <TouchableOpacity style={styles.coachCard} activeOpacity={0.8}>
           <View style={styles.coachInfo}>
             <View style={styles.coachAvatar}>
-              <Text style={styles.coachLetter}>A</Text>
+              <Text style={styles.coachLetter}>
+                {currentCliente?.coach_nombre?.charAt(0) || 'A'}
+              </Text>
             </View>
             <View>
-              <Text style={styles.coachName}>Coach Alexander</Text>
-              <Text style={styles.coachSpecialty}>Especialista en Hipertrofia</Text>
+              <Text style={styles.coachName}>
+                {currentCliente?.coach_nombre || 'Coach Alexander'}
+              </Text>
+              <Text style={styles.coachSpecialty}>Plan Personalizado</Text>
             </View>
           </View>
           <View style={styles.chatButton}>
@@ -120,22 +146,13 @@ export default function ClientProfileScreen() {
         </View>
       </View>
 
-      {/* Botón de Soporte */}
-      <TouchableOpacity style={styles.supportButton}>
-        <Text style={styles.supportText}>¿Necesitas ayuda? Contactar soporte</Text>
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Feather name="log-out" size={18} color="#F87171" />
+        <Text style={styles.logoutText}>Cerrar Sesión</Text>
       </TouchableOpacity>
-
-      {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Feather name="log-out" size={18} color="#F87171"  />
-          <Text style={styles.logoutText}>Cerrar Sesión</Text>
-        </TouchableOpacity>
-  
-        <Text style={styles.versionText}>FutureBody v1.0.4 - 2026</Text>
-
+ 
+      <Text style={styles.versionText}>FutureBody v1.0.4 - 2026</Text>
       <View style={{ marginBottom: 100 }} />
-
-
       
     </ScrollView>
   );
@@ -288,13 +305,13 @@ const styles = StyleSheet.create({
   supportButton: { marginTop: 30, alignItems: 'center' },
   supportText: { color: ColorPalette.textMuted, fontSize: 13, fontWeight: '500', textDecorationLine: 'underline' },
 
-  logoutText: { fontSize: 16, fontWeight: '700', color: '#F87171'}, // Un rojo más suave para dark mode
+  logoutText: { fontSize: 16, fontWeight: '700', color: '#F87171'}, 
   versionText: {
     textAlign: 'center',
     color: ColorPalette.textMuted,
     fontSize: 12,
     marginTop: 30,
-    marginBottom: 60, // Espacio extra para el Bottom Bar alto
+    marginBottom: 60, 
   },
   logoutButton: {
     flexDirection: 'row',
@@ -303,5 +320,11 @@ const styles = StyleSheet.create({
     marginTop: 40,
     gap: 10,
     paddingBottom: 10
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: ColorPalette.background,
   }
 });

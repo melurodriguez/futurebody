@@ -6,6 +6,7 @@ import ClientProfileScreen from "../screens/clients/ClientProfileScreen";
 import ProgressScreen from "../screens/clients/ProgressScreen";
 import AppointmentsScreen from '../screens/clients/AppointmentScreen'
 import GoalsScreen from "../screens/clients/GoalsScreen";
+import SeguimientoScreen from "../screens/clients/SeguimientoScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -31,9 +32,9 @@ const ClientTabs = () => {
                     let IconComponent;
 
                     if (route.name === 'Home') IconComponent = Home;
-                    else if (route.name === 'Turnos') IconComponent = Calendar; // Para sacar/cancelar turnos
-                    else if (route.name === 'Progreso') IconComponent = Activity; // Para medidas
-                    else if (route.name === 'Objetivos') IconComponent = Target; // Para metas
+                    else if (route.name === 'Turnos') IconComponent = Calendar; 
+                    else if (route.name === 'Progreso') IconComponent = Activity; 
+                    else if (route.name === 'Seguimiento') IconComponent = Target; 
                     else if (route.name === 'Profile') IconComponent = User;
 
                     return (
@@ -55,9 +56,9 @@ const ClientTabs = () => {
             <Tab.Screen name='Progreso' component={ProgressScreen} /> 
             
             {/* Gestión de metas personales */}
-            <Tab.Screen name='Objetivos' component={GoalsScreen} /> 
+            <Tab.Screen name='Seguimiento' component={SeguimientoScreen} /> 
             
-            {/* Gestión de perfil (el que ya vinculamos a Zustand) */}
+            {/* Gestión de perfil  */}
             <Tab.Screen name='Profile' component={ClientProfileScreen} />
         </Tab.Navigator>
     );

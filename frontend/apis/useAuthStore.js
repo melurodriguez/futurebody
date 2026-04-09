@@ -33,6 +33,7 @@ export const useAuthStore = create(
             token: data.access_token, 
             loading: false 
           });
+
           return { success: true };
 
         } catch (error) {
