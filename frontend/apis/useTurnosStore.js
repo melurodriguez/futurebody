@@ -23,9 +23,16 @@ export const useTurnosStore = create((set) => ({
   createTurnos: async (TurnosData) => {
     try {
       const response = await api.post('/turnos', TurnosData);
-      set((state) => ({ turnos: [...state.turnos, response.data] }));
+      
+      // Actualizamos el estado local de turnos
+      set((state) => ({ 
+        turnos: [...state.turnos, response.data] 
+      }));
+      
+      return response.data; // Retornamos para que el componente sepa que terminó bien
     } catch (err) {
       console.error("Error creando turnos", err);
+      throw err; // Lanzamos el error para que el catch del componente lo capture
     }
   }
 }));

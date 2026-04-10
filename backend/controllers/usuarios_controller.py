@@ -19,8 +19,11 @@ from backend.exceptions.usuarios_exceptions import (
 router = APIRouter(prefix='/usuarios', tags=['Usuarios'])
 
 @router.get("/", response_model=List[UsuarioResponse])
-async def get_all_users_router(db: AsyncSession = Depends(get_db)):
-    return await get_usuarios_service(db=db)
+async def get_all_users_router(rol:str=None, db: AsyncSession = Depends(get_db)):
+    try:
+        return await get_usuarios_service(db=db, rol=rol)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.get("/{usuario_id}", response_model=UsuarioResponse)
 async def get_user_by_id_router(usuario_id: int, db: AsyncSession = Depends(get_db)):

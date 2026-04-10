@@ -7,8 +7,11 @@ from backend.exceptions.usuarios_exceptions import (
     EmailAlreadyRegisteredError
 )
 
-async def get_usuarios_service(db: AsyncSession):
-    return await UsuarioDAO.get_all(db=db)
+async def get_usuarios_service(db: AsyncSession, rol:str | None):
+    if rol is not None:
+        if rol not in ["profesional", "cliente"]:
+            raise Exception("Error. No existe el rol indicado")
+    return await UsuarioDAO.get_all(db=db, rol=rol)
 
 async def get_usuario_by_id_service(db: AsyncSession, usuario_id: int):
     usuario = await UsuarioDAO.get_by_id(db=db, usuario_id=usuario_id)

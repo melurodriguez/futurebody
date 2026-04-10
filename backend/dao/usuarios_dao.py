@@ -6,9 +6,14 @@ from backend.models.usuarios_model import Usuario
 class UsuarioDAO:
 
     @staticmethod
-    async def get_all(db: AsyncSession) -> List[Usuario]:
+    async def get_all(db: AsyncSession, rol:str|None) -> List[Usuario]:
         """Obtiene todos los usuarios."""
-        result = await db.execute(select(Usuario))
+        query=(select(Usuario))
+
+        if rol is not None:
+            query=query.where(Usuario.rol == rol)
+        
+        result=await db.execute(query)
         return list(result.scalars().all())
     
     @staticmethod
